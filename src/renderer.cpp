@@ -7,6 +7,9 @@ float Renderer::height = 50.0f;
 
 std::vector<Body*> Renderer::bodies;
 Body* Renderer::greatBall = nullptr;
+Body* Renderer::smallBall = nullptr; 
+bool Renderer:: isDragging = false; 
+bool Renderer:: isRigidHingeDragging = false; 
 float Renderer::radius_ = 0.0f;
 
 GLuint Renderer::shaderProgram = 0;
@@ -107,10 +110,55 @@ void Renderer::Update(GLFWwindow* window) {
     glClearColor(0.05f, 0.05f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
+    // for basic applying foce and all other things 
+
+     for (auto body : bodies) {
+        if(isDragging){
+		double mouseX, mouseY; 
+		     glfwGetCursorPos(window, &mouseX, &mouseY);
+
+		    // Update the position to follow the mouse
+		    greatBall->position.x = mouseX;
+		    greatBall->position.y = mouseY;
+	    }
+    }
+    // for handling physics 
     for (auto body : bodies) {
         if (body->shape->GetType() == CIRCLE) {
             CircleShape* circle = static_cast<CircleShape*>(body->shape);
             DrawCircle(body->position, circle->radius, {1.0f, 0.5f, 0.2f});
+            DrawLine(body->position, body->position + glm::vec2(body->GetRadius(), 0.f), {1.0f, 0.5f, 0.2f}); 
+        }
+    }
+}
+
+void Renderer::MouseButtonCallBack(GLFWwindow* window, int button, int action, int mods){
+    double x, y; 
+    glfwGetCursorPos(window, &x, &y); 
+    switch (action)
+    {
+    case GLFW_PRESS:
+        switch (button)
+        {
+        case GLFW_MOUSE_BUTTON_RIGHT:
+            // yesma mouse right click huda k hunxa lekhni 
+            smallBall = new Body(CircleShape(20), x, y); 
+            bodies.push_back(smallBall); 
+            break;
+          case GLFW_MOUSE_BUTTON_LEFT:
+           if (greatBall && IsPointInCircle(x, y, greatBall->position.x, greatBall->position.y, greatBall->GetRadius())) {
+                        isDragging = true;
+                }
+            break;
+        }     
+    break;
+    
+     case GLFW_RELEASE:
+        switch (button)
+        {
+        case GLFW_MOUSE_BUTTON_LEFT:
+            isDragging = false;
+            break;
         }
     }
 }
@@ -187,4 +235,43 @@ void Renderer::DrawPolygon(const glm::vec2* points, int count, glm::vec3 color) 
 
     glDeleteBuffers(1, &vbo);
     glDeleteVertexArrays(1, &vao);
+}
+
+void Renderer::DrawLine(glm::vec2 p1, glm::vec2 p2, glm::vec3 color) {
+    glm::mat4 proj = glm::ortho(0.0f, (float)screenWidth, (float)screenHeight, 0.0f);
+
+    float verts[] = {
+        p1.x, p1.y,
+        p2.x, p2.y
+    };
+
+    GLuint vao, vbo;
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
+
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
+    glEnableVertexAttribArray(0);
+
+    glUseProgram(shaderProgram);
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "uModel"), 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "uProj"), 1, GL_FALSE, glm::value_ptr(proj));
+    glUniform3f(glGetUniformLocation(shaderProgram, "uColor"), color.r, color.g, color.b);
+
+    glDrawArrays(GL_LINES, 0, 2);
+
+    glDeleteBuffers(1, &vbo);
+    glDeleteVertexArrays(1, &vao);
+}
+
+bool Renderer::IsPointInCircle(int pointX, int pointY, int circleX, int circleY, int radius) {
+    // Calculate the squared distance between the point and the circle center
+    int deltaX = pointX - circleX;
+    int deltaY = pointY - circleY;
+    int distanceSquared = deltaX * deltaX + deltaY * deltaY;
+    
+    // Return true if the mouse is inside the circle (distance <= radius)
+    return distanceSquared <= (radius * radius);
 }

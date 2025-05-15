@@ -19,7 +19,8 @@
 class Renderer {
     public:
         static void Init(GLFWwindow* window);
-        static void SetUp(); 
+        static void SetUp();
+        static void MouseButtonCallBack(GLFWwindow* window, int button, int action, int mods);  
         static void Update(GLFWwindow* window);
         static void RenderGUI();
         static void Shutdown();
@@ -27,6 +28,10 @@ class Renderer {
         static void DrawCircle(glm::vec2 pos, float radius, glm::vec3 color);
         static void DrawRectangle(glm::vec2 pos, float width, float height, glm::vec3 color);
         static void DrawPolygon(const glm::vec2* points, int count, glm::vec3 color);
+        static void DrawLine(glm::vec2 p1, glm::vec2 p2, glm::vec3 color);
+
+        // Function to check if mouse is inside the circle or not 
+        static bool IsPointInCircle(int pointX, int pointY, int circleX, int circleY, int radius); 
     
         static GLuint shaderProgram, circleVAO, circleVBO, rectVAO, rectVBO;
         static const int screenWidth = 800;
@@ -44,5 +49,7 @@ class Renderer {
         static GLuint compileShaderProgram();
         static std::vector<Body*> bodies; 
         static float radius_; 
-        static Body* greatBall;
+        static Body* greatBall; 
+        static Body* smallBall; 
+        static bool isDragging, isRigidHingeDragging; 
     };

@@ -7,6 +7,8 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     GLFWwindow* window = glfwCreateWindow(800, 600, "2D Rigid Body", NULL, NULL);
     glfwMakeContextCurrent(window);
+    // Register the callback
+    glfwSetMouseButtonCallback(window, Renderer::MouseButtonCallBack);
     glfwSwapInterval(1);
 
     Renderer::Init(window);
