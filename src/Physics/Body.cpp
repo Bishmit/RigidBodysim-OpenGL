@@ -1,7 +1,7 @@
 #include "Body.h"
 #include <iostream>
 
-Body::Body(const Shape& shape, float x, float y): shape(shape.Clone()), position(glm::vec2(x,y)){
+Body::Body(const Shape& shape, float x, float y): shape(shape.Clone()), position(glm::vec2(x,y)), isColliding(false){
 
 }
 

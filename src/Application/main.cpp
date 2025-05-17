@@ -33,10 +33,7 @@ int main() {
 
         glfwSwapBuffers(window);
     }
-
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
+    Renderer::Destroy(); 
     Renderer::Shutdown();
     glfwTerminate();
     return 0;

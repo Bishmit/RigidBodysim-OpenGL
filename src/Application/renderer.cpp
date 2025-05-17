@@ -130,6 +130,16 @@ void Renderer::Update(GLFWwindow* window) {
             DrawLine(body->position, body->position + glm::vec2(body->GetRadius(), 0.f), {1.0f, 0.5f, 0.2f}); 
         }
     }
+
+    for(int i = 0; i<bodies.size()-1; i++){
+        for(int j = i+1; j<bodies.size(); j++){
+           Body* a = bodies[i]; 
+           Body* b = bodies[j];
+           if(CollisionDetection::IsColliding(a,b)){
+               
+            }
+        }
+    }
 }
 
 void Renderer::MouseButtonCallBack(GLFWwindow* window, int button, int action, int mods){
@@ -274,4 +284,13 @@ bool Renderer::IsPointInCircle(int pointX, int pointY, int circleX, int circleY,
     
     // Return true if the mouse is inside the circle (distance <= radius)
     return distanceSquared <= (radius * radius);
+}
+
+void Renderer::Destroy(){
+    for(auto body: bodies) delete body; 
+    
+    //ImGui cleanup 
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 }

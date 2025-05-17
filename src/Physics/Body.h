@@ -9,6 +9,7 @@ class Body{
   
   Shape* shape = nullptr; 
   
+  bool isColliding = false; 
   Body(const Shape& shape, float x, float y); 
   ~Body(); 
 

@@ -11,6 +11,7 @@
 #include <vector>
 #include "Physics/Body.h"
 #include "Physics/Shape.h"
+#include "Physics/CollisionDetection.h"
 #include "../stb/stb_image.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
@@ -32,7 +33,8 @@ class Renderer {
 
         // Function to check if mouse is inside the circle or not 
         static bool IsPointInCircle(int pointX, int pointY, int circleX, int circleY, int radius); 
-    
+        
+        static void Destroy(); 
         static GLuint shaderProgram, circleVAO, circleVBO, rectVAO, rectVBO;
         static const int screenWidth = 800;
         static const int screenHeight = 600;
