@@ -5,6 +5,11 @@ float Renderer::radius = 50.0f;
 float Renderer::width = 100.0f;
 float Renderer::height = 50.0f;
 
+int Renderer::screenWidth = 800; 
+int Renderer::screenHeight = 600; 
+
+glm::mat4 Renderer::projection;
+
 std::vector<Body*> Renderer::bodies;
 Body* Renderer::greatBall = nullptr;
 Body* Renderer::smallBall = nullptr; 
@@ -78,6 +83,7 @@ void Renderer::Init(GLFWwindow* window) {
     }
 
     glViewport(0, 0, screenWidth, screenHeight);
+    projection = glm::ortho(0.0f, (float)screenWidth, (float)screenHeight, 0.0f, -1.0f, 1.0f);
     shaderProgram = compileShaderProgram();
 
     // Circle VAO
@@ -122,21 +128,35 @@ void Renderer::Update(GLFWwindow* window) {
 		    greatBall->position.y = mouseY;
 	    }
     }
+
     // for handling physics 
-    for (auto body : bodies) {
-        if (body->shape->GetType() == CIRCLE) {
-            CircleShape* circle = static_cast<CircleShape*>(body->shape);
-            DrawCircle(body->position, circle->radius, {1.0f, 0.5f, 0.2f});
-            DrawLine(body->position, body->position + glm::vec2(body->GetRadius(), 0.f), {1.0f, 0.5f, 0.2f}); 
-        }
+   for (auto body : bodies) {
+    if (body->shape->GetType() == CIRCLE) {
+        CircleShape* circle = static_cast<CircleShape*>(body->shape);
+
+        // Decide color based on collision state
+        glm::vec3 color = body->isColliding 
+                            ? glm::vec3(1.0f, 0.0f, 0.0f)  // red if colliding
+                            : glm::vec3(1.0f, 1.0f, 1.0f); // white if not
+
+        // Pass the selected color to DrawCircle
+        DrawCircle(body->position, circle->radius, color);
+
+        // Draw a direction line (optional, use same color or custom one)
+        DrawLine(body->position, body->position + glm::vec2(body->GetRadius(), 0.f), color); 
     }
+}
+
 
     for(int i = 0; i<bodies.size()-1; i++){
         for(int j = i+1; j<bodies.size(); j++){
            Body* a = bodies[i]; 
            Body* b = bodies[j];
+              a->isColliding = false; 
+              b->isColliding = false;  
            if(CollisionDetection::IsColliding(a,b)){
-               
+              a->isColliding = true; 
+              b->isColliding = true;   
             }
         }
     }
@@ -191,13 +211,13 @@ void Renderer::Shutdown() {
 
 // === Drawing Helpers ===
 void Renderer::DrawCircle(glm::vec2 pos, float radius, glm::vec3 color) {
-    glm::mat4 proj = glm::ortho(0.0f, (float)screenWidth, (float)screenHeight, 0.0f);
     glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(pos, 0.0f));
     model = glm::scale(model, glm::vec3(radius));
 
     glUseProgram(shaderProgram);
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "uModel"), 1, GL_FALSE, glm::value_ptr(model));
-    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "uProj"), 1, GL_FALSE, glm::value_ptr(proj));
+
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "uProj"), 1, GL_FALSE, glm::value_ptr(projection));
     glUniform3f(glGetUniformLocation(shaderProgram, "uColor"), color.r, color.g, color.b);
 
     glBindVertexArray(circleVAO);
@@ -205,13 +225,12 @@ void Renderer::DrawCircle(glm::vec2 pos, float radius, glm::vec3 color) {
 }
 
 void Renderer::DrawRectangle(glm::vec2 pos, float w, float h, glm::vec3 color) {
-    glm::mat4 proj = glm::ortho(0.0f, (float)screenWidth, (float)screenHeight, 0.0f);
     glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(pos, 0.0f));
     model = glm::scale(model, glm::vec3(w, h, 1.0f));
 
     glUseProgram(shaderProgram);
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "uModel"), 1, GL_FALSE, glm::value_ptr(model));
-    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "uProj"), 1, GL_FALSE, glm::value_ptr(proj));
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "uProj"), 1, GL_FALSE, glm::value_ptr(projection));
     glUniform3f(glGetUniformLocation(shaderProgram, "uColor"), color.r, color.g, color.b);
 
     glBindVertexArray(rectVAO);
@@ -219,7 +238,6 @@ void Renderer::DrawRectangle(glm::vec2 pos, float w, float h, glm::vec3 color) {
 }
 
 void Renderer::DrawPolygon(const glm::vec2* points, int count, glm::vec3 color) {
-    glm::mat4 proj = glm::ortho(0.0f, (float)screenWidth, (float)screenHeight, 0.0f);
     std::vector<float> verts;
     for (int i = 0; i < count; ++i) {
         verts.push_back(points[i].x);
@@ -238,7 +256,7 @@ void Renderer::DrawPolygon(const glm::vec2* points, int count, glm::vec3 color) 
 
     glUseProgram(shaderProgram);
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "uModel"), 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
-    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "uProj"), 1, GL_FALSE, glm::value_ptr(proj));
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "uProj"), 1, GL_FALSE, glm::value_ptr(projection));
     glUniform3f(glGetUniformLocation(shaderProgram, "uColor"), color.r, color.g, color.b);
 
     glDrawArrays(GL_LINE_LOOP, 0, count);
@@ -248,8 +266,6 @@ void Renderer::DrawPolygon(const glm::vec2* points, int count, glm::vec3 color) 
 }
 
 void Renderer::DrawLine(glm::vec2 p1, glm::vec2 p2, glm::vec3 color) {
-    glm::mat4 proj = glm::ortho(0.0f, (float)screenWidth, (float)screenHeight, 0.0f);
-
     float verts[] = {
         p1.x, p1.y,
         p2.x, p2.y
@@ -267,13 +283,20 @@ void Renderer::DrawLine(glm::vec2 p1, glm::vec2 p2, glm::vec3 color) {
 
     glUseProgram(shaderProgram);
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "uModel"), 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
-    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "uProj"), 1, GL_FALSE, glm::value_ptr(proj));
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "uProj"), 1, GL_FALSE, glm::value_ptr(projection));
     glUniform3f(glGetUniformLocation(shaderProgram, "uColor"), color.r, color.g, color.b);
 
     glDrawArrays(GL_LINES, 0, 2);
 
     glDeleteBuffers(1, &vbo);
     glDeleteVertexArrays(1, &vao);
+}
+
+void Renderer::framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+    glViewport(0, 0, width, height);
+    screenWidth = width;
+    screenHeight = height;
+    projection = glm::ortho(0.0f, float(width), float(height), 0.0f, -1.0f, 1.0f);
 }
 
 bool Renderer::IsPointInCircle(int pointX, int pointY, int circleX, int circleY, int radius) {

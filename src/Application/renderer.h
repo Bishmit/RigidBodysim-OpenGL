@@ -19,6 +19,10 @@
 
 class Renderer {
     public:
+       static glm::mat4 projection;  // Global projection matrix
+       static int screenWidth;
+       static int screenHeight;
+
         static void Init(GLFWwindow* window);
         static void SetUp();
         static void MouseButtonCallBack(GLFWwindow* window, int button, int action, int mods);  
@@ -31,13 +35,15 @@ class Renderer {
         static void DrawPolygon(const glm::vec2* points, int count, glm::vec3 color);
         static void DrawLine(glm::vec2 p1, glm::vec2 p2, glm::vec3 color);
 
+        static void framebuffer_size_callback(GLFWwindow* window, int width, int height); 
+
         // Function to check if mouse is inside the circle or not 
         static bool IsPointInCircle(int pointX, int pointY, int circleX, int circleY, int radius); 
         
         static void Destroy(); 
         static GLuint shaderProgram, circleVAO, circleVBO, rectVAO, rectVBO;
-        static const int screenWidth = 800;
-        static const int screenHeight = 600;
+        // static const int screenWidth = 800;
+        // static const int screenHeight = 600;
         static float radius;
         static float width;
         static float height;
