@@ -1,21 +1,8 @@
-#include "renderer.h"
+#include "Renderer.h"
 
-// === Static Members Initialization ===
-float Renderer::radius = 50.0f;
-float Renderer::width = 100.0f;
-float Renderer::height = 50.0f;
-
-int Renderer::screenWidth = 800; 
-int Renderer::screenHeight = 600; 
-
+// === Static Members Initialization for Rendering ===
 glm::mat4 Renderer::projection;
-
-std::vector<Body*> Renderer::bodies;
-Body* Renderer::greatBall = nullptr;
-Body* Renderer::smallBall = nullptr; 
-bool Renderer:: isDragging = false; 
-bool Renderer:: isRigidHingeDragging = false; 
-float Renderer::radius_ = 0.0f;
+glm::vec3 Renderer::color = glm::vec3(1.0f, 1.0f, 1.0f);
 
 GLuint Renderer::shaderProgram = 0;
 GLuint Renderer::circleVAO = 0, Renderer::circleVBO = 0;
@@ -75,14 +62,7 @@ GLuint Renderer::compileShaderProgram() {
     return program;
 }
 
-// === Core Methods ===
-void Renderer::Init(GLFWwindow* window) {
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        std::cerr << "Failed to initialize GLAD\n";
-        return;
-    }
-
-    glViewport(0, 0, screenWidth, screenHeight);
+void Renderer::InitRenderer(int screenWidth, int screenHeight) {
     projection = glm::ortho(0.0f, (float)screenWidth, (float)screenHeight, 0.0f, -1.0f, 1.0f);
     shaderProgram = compileShaderProgram();
 
@@ -106,102 +86,11 @@ void Renderer::Init(GLFWwindow* window) {
     glEnableVertexAttribArray(0);
 }
 
-void Renderer::SetUp() {
-    greatBall = new Body(CircleShape(150), 400, 300);
-    bodies.push_back(greatBall);
-    radius_ = greatBall->GetRadius();
+void Renderer::UpdateProjection(int screenWidth, int screenHeight) {
+    projection = glm::ortho(0.0f, float(screenWidth), float(screenHeight), 0.0f, -1.0f, 1.0f);
 }
 
-void Renderer::Update(GLFWwindow* window) {
-    glClearColor(0.05f, 0.05f, 0.1f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    // for basic applying foce and all other things 
-
-     for (auto body : bodies) {
-        if(isDragging){
-		double mouseX, mouseY; 
-		     glfwGetCursorPos(window, &mouseX, &mouseY);
-
-		    // Update the position to follow the mouse
-		    greatBall->position.x = mouseX;
-		    greatBall->position.y = mouseY;
-	    }
-    }
-
-    // for handling physics 
-   for (auto body : bodies) {
-    if (body->shape->GetType() == CIRCLE) {
-        CircleShape* circle = static_cast<CircleShape*>(body->shape);
-
-        // Decide color based on collision state
-        glm::vec3 color = body->isColliding 
-                            ? glm::vec3(1.0f, 0.0f, 0.0f)  // red if colliding
-                            : glm::vec3(1.0f, 1.0f, 1.0f); // white if not
-
-        // Pass the selected color to DrawCircle
-        DrawCircle(body->position, circle->radius, color);
-
-        // Draw a direction line (optional, use same color or custom one)
-        DrawLine(body->position, body->position + glm::vec2(body->GetRadius(), 0.f), color); 
-    }
-}
-
-
-    for(int i = 0; i<bodies.size()-1; i++){
-        for(int j = i+1; j<bodies.size(); j++){
-           Body* a = bodies[i]; 
-           Body* b = bodies[j];
-              a->isColliding = false; 
-              b->isColliding = false;  
-           if(CollisionDetection::IsColliding(a,b)){
-              a->isColliding = true; 
-              b->isColliding = true;   
-            }
-        }
-    }
-}
-
-void Renderer::MouseButtonCallBack(GLFWwindow* window, int button, int action, int mods){
-    double x, y; 
-    glfwGetCursorPos(window, &x, &y); 
-    switch (action)
-    {
-    case GLFW_PRESS:
-        switch (button)
-        {
-        case GLFW_MOUSE_BUTTON_RIGHT:
-            // yesma mouse right click huda k hunxa lekhni 
-            smallBall = new Body(CircleShape(20), x, y); 
-            bodies.push_back(smallBall); 
-            break;
-          case GLFW_MOUSE_BUTTON_LEFT:
-           if (greatBall && IsPointInCircle(x, y, greatBall->position.x, greatBall->position.y, greatBall->GetRadius())) {
-                        isDragging = true;
-                }
-            break;
-        }     
-    break;
-    
-     case GLFW_RELEASE:
-        switch (button)
-        {
-        case GLFW_MOUSE_BUTTON_LEFT:
-            isDragging = false;
-            break;
-        }
-    }
-}
-
-void Renderer::RenderGUI(){
-    ImGui::Begin("Renderer Demo");
-    if (ImGui::SliderFloat("Circle Radius", &radius_, 10.0f, 200.0f)) {
-        greatBall->SetRadius(radius_);
-    }
-    ImGui::End();
-}
-
-void Renderer::Shutdown() {
+void Renderer::CleanupRenderer() {
     glDeleteBuffers(1, &circleVBO);
     glDeleteVertexArrays(1, &circleVAO);
     glDeleteBuffers(1, &rectVBO);
@@ -292,13 +181,6 @@ void Renderer::DrawLine(glm::vec2 p1, glm::vec2 p2, glm::vec3 color) {
     glDeleteVertexArrays(1, &vao);
 }
 
-void Renderer::framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-    glViewport(0, 0, width, height);
-    screenWidth = width;
-    screenHeight = height;
-    projection = glm::ortho(0.0f, float(width), float(height), 0.0f, -1.0f, 1.0f);
-}
-
 bool Renderer::IsPointInCircle(int pointX, int pointY, int circleX, int circleY, int radius) {
     // Calculate the squared distance between the point and the circle center
     int deltaX = pointX - circleX;
@@ -307,13 +189,4 @@ bool Renderer::IsPointInCircle(int pointX, int pointY, int circleX, int circleY,
     
     // Return true if the mouse is inside the circle (distance <= radius)
     return distanceSquared <= (radius * radius);
-}
-
-void Renderer::Destroy(){
-    for(auto body: bodies) delete body; 
-    
-    //ImGui cleanup 
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
 }

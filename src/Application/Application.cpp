@@ -1,0 +1,160 @@
+#include "Application.h"
+
+// === Static Members Initialization ===
+int Application::screenWidth = 800;
+int Application::screenHeight = 600;
+float Application::radius = 50.0f;
+float Application::width = 100.0f;
+float Application::height = 50.0f;
+float Application::radius_ = 0.0f;
+
+std::vector<Body*> Application::bodies;
+Body* Application::greatBall = nullptr;
+Body* Application::smallBall = nullptr;
+bool Application::isDragging = false;
+bool Application::isRigidHingeDragging = false;
+
+void Application::Init(GLFWwindow* window) {
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        std::cerr << "Failed to initialize GLAD\n";
+        return;
+    }
+
+    glViewport(0, 0, screenWidth, screenHeight);
+    
+    // Initialize the renderer
+    Renderer::InitRenderer(screenWidth, screenHeight);
+    
+    // Set callbacks
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetMouseButtonCallback(window, MouseButtonCallBack);
+    
+    // Setup ImGui
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330");
+    ImGui::StyleColorsDark();
+}
+
+void Application::SetUp() {
+    greatBall = new Body(CircleShape(150), 400, 300);
+    bodies.push_back(greatBall);
+    radius_ = greatBall->GetRadius();
+}
+
+void Application::Update(GLFWwindow* window) {
+    glClearColor(0.05f, 0.05f, 0.1f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // for basic applying force and all other things
+    for (auto body : bodies) {
+        if(isDragging){
+            double mouseX, mouseY; 
+            glfwGetCursorPos(window, &mouseX, &mouseY);
+
+            // Update the position to follow the mouse
+            greatBall->position.x = mouseX;
+            greatBall->position.y = mouseY;
+        }
+    }
+
+    // Detect collisions
+    for(int i = 0; i < bodies.size()-1; i++) {
+        for(int j = i+1; j < bodies.size(); j++) {
+            Body* a = bodies[i];
+            Body* b = bodies[j];
+            
+            if(CollisionDetection::IsColliding(a, b)) {
+                a->isColliding = true;
+                b->isColliding = true;
+            }
+        }
+    }
+
+    // Draw bodies with appropriate colors
+    for (auto body : bodies) {
+        glm::vec3 color = body->isColliding 
+            ? glm::vec3(1.0f, 0.0f, 0.0f)  // red if colliding
+            : glm::vec3(1.0f, 1.0f, 1.0f); // white if not
+        
+        if (body->shape->GetType() == CIRCLE) {
+            CircleShape* circle = static_cast<CircleShape*>(body->shape);
+            Renderer::DrawCircle(body->position, circle->radius, color);
+            Renderer::DrawLine(body->position, body->position + glm::vec2(circle->radius, 0.f), color);
+        }
+        
+        body->isColliding = false;
+    }
+    
+    // Render ImGui
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+    
+    RenderGUI();
+    
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+void Application::MouseButtonCallBack(GLFWwindow* window, int button, int action, int mods) {
+    double x, y; 
+    glfwGetCursorPos(window, &x, &y); 
+    
+    switch (action) {
+    case GLFW_PRESS:
+        switch (button) {
+        case GLFW_MOUSE_BUTTON_RIGHT:
+            // Create a new small ball on right click
+            smallBall = new Body(CircleShape(20), x, y); 
+            bodies.push_back(smallBall); 
+            break;
+        case GLFW_MOUSE_BUTTON_LEFT:
+            if (greatBall && Renderer::IsPointInCircle(x, y, greatBall->position.x, greatBall->position.y, greatBall->GetRadius())) {
+                isDragging = true;
+            }
+            break;
+        }     
+        break;
+    
+    case GLFW_RELEASE:
+        switch (button) {
+        case GLFW_MOUSE_BUTTON_LEFT:
+            isDragging = false;
+            break;
+        }
+    }
+}
+
+void Application::RenderGUI() {
+    ImGui::Begin("Application Demo");
+    if (ImGui::SliderFloat("Circle Radius", &radius_, 10.0f, 200.0f)) {
+        greatBall->SetRadius(radius_);
+    }
+    ImGui::End();
+}
+
+void Application::framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+    glViewport(0, 0, width, height);
+    screenWidth = width;
+    screenHeight = height;
+    Renderer::UpdateProjection(width, height);
+}
+
+void Application::Shutdown() {
+    Renderer::CleanupRenderer();
+}
+
+void Application::Destroy() {
+    for(auto body: bodies) {
+        delete body;
+    }
+    bodies.clear();
+    
+    // ImGui cleanup 
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+}
