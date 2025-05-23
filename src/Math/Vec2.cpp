@@ -102,8 +102,3 @@ Vec2& Vec2::operator/=(float n) {
     vec /= n;
     return *this;
 }
-
-std::ostream& operator<<(std::ostream& os, const Vec2& v) {
-    os << "(" << v.x() << ", " << v.y() << ")";
-    return os;
-}

@@ -10,6 +10,8 @@
 #include <iostream>
 #include <vector>
 
+#include "Math/Vec2.h"
+
 
 class Renderer {
 public:
@@ -23,10 +25,10 @@ public:
     static void CleanupRenderer();
 
     // Drawing functions
-    static void DrawCircle(glm::vec2 pos, float radius, glm::vec3 color);
-    static void DrawRectangle(glm::vec2 pos, float width, float height, glm::vec3 color);
+    static void DrawCircle(Vec2 pos, float radius, glm::vec3 color);
+    static void DrawRectangle(Vec2 pos, float width, float height, glm::vec3 color);
     static void DrawPolygon(const glm::vec2* points, int count, glm::vec3 color);
-    static void DrawLine(glm::vec2 p1, glm::vec2 p2, glm::vec3 color);
+    static void DrawLine(Vec2 p1, Vec2 p2, glm::vec3 color);
     
     // Utility function for hit detection
     static bool IsPointInCircle(int pointX, int pointY, int circleX, int circleY, int radius);

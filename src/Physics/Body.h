@@ -1,11 +1,12 @@
 #pragma once
 
 #include "glm/glm.hpp"
-#include "Shape.h" 
+#include "Shape.h"
+#include "Math/Vec2.h" 
 
 class Body{
   public: 
-  glm::vec2 position;  
+  Vec2 position;  
   
   Shape* shape = nullptr; 
   

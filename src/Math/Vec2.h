@@ -15,6 +15,11 @@ public:
     Vec2(const glm::vec2& v);
     ~Vec2() = default; 
 
+    float& x() { return vec.x; }
+    float& y() { return vec.y; }
+    const float& x() const { return vec.x; }
+    const float& y() const { return vec.y; }
+
     // Basic operations
     void Add(const Vec2& v); 
     void Sub(const Vec2& v); 
@@ -33,8 +38,8 @@ public:
     float Cross(const Vec2& v) const; 
 
      // Getters
-    float x() const { return vec.x; }
-    float y() const { return vec.y; }
+    // float x() const { return vec.x; }
+    // float y() const { return vec.y; }
     glm::vec2& Glm() { return vec; }
     const glm::vec2& Glm() const { return vec; }
 

@@ -13,6 +13,7 @@ Body* Application::greatBall = nullptr;
 Body* Application::smallBall = nullptr;
 bool Application::isDragging = false;
 bool Application::isRigidHingeDragging = false;
+ContactInformation Application::contact; 
 
 void Application::Init(GLFWwindow* window) {
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
@@ -55,8 +56,8 @@ void Application::Update(GLFWwindow* window) {
             glfwGetCursorPos(window, &mouseX, &mouseY);
 
             // Update the position to follow the mouse
-            greatBall->position.x = mouseX;
-            greatBall->position.y = mouseY;
+            greatBall->position.x() = mouseX;
+            greatBall->position.y() = mouseY;
         }
     }
 
@@ -66,7 +67,10 @@ void Application::Update(GLFWwindow* window) {
             Body* a = bodies[i];
             Body* b = bodies[j];
             
-            if(CollisionDetection::IsColliding(a, b)) {
+            if(CollisionDetection::IsColliding(a, b, contact)) {
+                Renderer::DrawCircle(contact.start, 3.f, {1.0f, 0.0f, 0.0f}); 
+                 Renderer::DrawCircle(contact.end, 3.f, {1.0f, 0.0f, 0.0f}); 
+                 Renderer::DrawLine(contact.start, { contact.start.x() + contact.normal.x() * 20, contact.start.y() + contact.normal.y() * 20}, {1.0f, 0.0f, 0.0f}); 
                 a->isColliding = true;
                 b->isColliding = true;
             }
@@ -108,11 +112,11 @@ void Application::MouseButtonCallBack(GLFWwindow* window, int button, int action
         switch (button) {
         case GLFW_MOUSE_BUTTON_RIGHT:
             // Create a new small ball on right click
-            smallBall = new Body(CircleShape(20), x, y); 
+            smallBall = new Body(CircleShape(100), x, y); 
             bodies.push_back(smallBall); 
             break;
         case GLFW_MOUSE_BUTTON_LEFT:
-            if (greatBall && Renderer::IsPointInCircle(x, y, greatBall->position.x, greatBall->position.y, greatBall->GetRadius())) {
+            if (greatBall && Renderer::IsPointInCircle(x, y, greatBall->position.x(), greatBall->position.y(), greatBall->GetRadius())) {
                 isDragging = true;
             }
             break;

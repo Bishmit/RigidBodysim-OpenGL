@@ -99,13 +99,12 @@ void Renderer::CleanupRenderer() {
 }
 
 // === Drawing Helpers ===
-void Renderer::DrawCircle(glm::vec2 pos, float radius, glm::vec3 color) {
-    glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(pos, 0.0f));
+void Renderer::DrawCircle(Vec2 pos, float radius, glm::vec3 color) {
+    glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(pos.x(), pos.y(), 0.0f));
     model = glm::scale(model, glm::vec3(radius));
 
     glUseProgram(shaderProgram);
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "uModel"), 1, GL_FALSE, glm::value_ptr(model));
-
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "uProj"), 1, GL_FALSE, glm::value_ptr(projection));
     glUniform3f(glGetUniformLocation(shaderProgram, "uColor"), color.r, color.g, color.b);
 
@@ -113,8 +112,8 @@ void Renderer::DrawCircle(glm::vec2 pos, float radius, glm::vec3 color) {
     glDrawArrays(GL_LINE_LOOP, 0, 100);
 }
 
-void Renderer::DrawRectangle(glm::vec2 pos, float w, float h, glm::vec3 color) {
-    glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(pos, 0.0f));
+void Renderer::DrawRectangle(Vec2 pos, float w, float h, glm::vec3 color) {
+    glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(pos.x(), pos.y(), 0.0f));
     model = glm::scale(model, glm::vec3(w, h, 1.0f));
 
     glUseProgram(shaderProgram);
@@ -125,6 +124,7 @@ void Renderer::DrawRectangle(glm::vec2 pos, float w, float h, glm::vec3 color) {
     glBindVertexArray(rectVAO);
     glDrawArrays(GL_LINE_LOOP, 0, 4);
 }
+
 
 void Renderer::DrawPolygon(const glm::vec2* points, int count, glm::vec3 color) {
     std::vector<float> verts;
@@ -154,10 +154,10 @@ void Renderer::DrawPolygon(const glm::vec2* points, int count, glm::vec3 color) 
     glDeleteVertexArrays(1, &vao);
 }
 
-void Renderer::DrawLine(glm::vec2 p1, glm::vec2 p2, glm::vec3 color) {
+void Renderer::DrawLine(Vec2 p1, Vec2 p2, glm::vec3 color) {
     float verts[] = {
-        p1.x, p1.y,
-        p2.x, p2.y
+        p1.x(), p1.y(),
+        p2.x(), p2.y()
     };
 
     GLuint vao, vbo;
@@ -180,6 +180,7 @@ void Renderer::DrawLine(glm::vec2 p1, glm::vec2 p2, glm::vec3 color) {
     glDeleteBuffers(1, &vbo);
     glDeleteVertexArrays(1, &vao);
 }
+
 
 bool Renderer::IsPointInCircle(int pointX, int pointY, int circleX, int circleY, int radius) {
     // Calculate the squared distance between the point and the circle center

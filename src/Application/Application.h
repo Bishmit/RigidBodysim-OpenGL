@@ -14,6 +14,7 @@
 #include "Physics/Body.h"
 #include "Physics/Shape.h"
 #include "Physics/CollisionDetection.h"
+#include "Physics/ContactInformation.h"
 
 #include "Renderer.h"
 
@@ -48,4 +49,7 @@ private:
     // Interaction state
     static bool isDragging;
     static bool isRigidHingeDragging;
+    
+    static ContactInformation contact; 
+    
 };
