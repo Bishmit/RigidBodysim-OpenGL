@@ -15,6 +15,8 @@
 #include "Physics/Shape.h"
 #include "Physics/CollisionDetection.h"
 #include "Physics/ContactInformation.h"
+#include "Physics/CollisionSolver.h"
+#include "Physics/Constant.h"
 
 #include "Renderer.h"
 

@@ -14,5 +14,4 @@ struct ContactInformation
     Distance distance; 
     ContactInformation() = default; 
     ~ContactInformation() = default; 
-
 };

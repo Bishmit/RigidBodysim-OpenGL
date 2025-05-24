@@ -40,7 +40,7 @@ void Application::Init(GLFWwindow* window) {
 }
 
 void Application::SetUp() {
-    greatBall = new Body(CircleShape(150), 400, 300);
+    greatBall = new Body(CircleShape(150), 400, 300, 0.f);
     bodies.push_back(greatBall);
     radius_ = greatBall->GetRadius();
 }
@@ -48,6 +48,37 @@ void Application::SetUp() {
 void Application::Update(GLFWwindow* window) {
     glClearColor(0.05f, 0.05f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
+
+      // Static to keep value between frames
+    static double timePreviousFrame = glfwGetTime();
+
+    // Calculate deltaTime in seconds
+    double currentTime = glfwGetTime();
+    float deltaTime = static_cast<float>(currentTime - timePreviousFrame);
+
+    // Clamp deltaTime to avoid large jumps
+    if (deltaTime > 0.016f)
+        deltaTime = 0.016f;
+
+    // Set current time for next frame
+    timePreviousFrame = currentTime;
+
+    int scale = Constant::PIXELS_PER_METER; 
+    // Apply forces to bodies
+    for (auto body : bodies) {
+        Vec2 weight = Vec2(0.0, body->mass * 9.8 * scale);
+        body->AddForce(weight);
+
+        // Optional:
+        // Vec2 wind = Vec2(2.0 * PIXELS_PER_METER, 0.0);
+        // body->AddForce(wind);
+        // body->AddTorque(20.0f);
+    }
+
+    // Integrate forces to update velocity/position
+    for (auto body : bodies) {
+       if (body) body->Update(deltaTime);
+    }
 
     // for basic applying force and all other things
     for (auto body : bodies) {
@@ -68,7 +99,9 @@ void Application::Update(GLFWwindow* window) {
             Body* b = bodies[j];
             
             if(CollisionDetection::IsColliding(a, b, contact)) {
-                Renderer::DrawCircle(contact.start, 3.f, {1.0f, 0.0f, 0.0f}); 
+               // contact.ResolveCollison(); 
+                CollisionSolver::ResolveCollision(contact); 
+                 Renderer::DrawCircle(contact.start, 3.f, {1.0f, 0.0f, 0.0f}); 
                  Renderer::DrawCircle(contact.end, 3.f, {1.0f, 0.0f, 0.0f}); 
                  Renderer::DrawLine(contact.start, { contact.start.x() + contact.normal.x() * 20, contact.start.y() + contact.normal.y() * 20}, {1.0f, 0.0f, 0.0f}); 
                 a->isColliding = true;
@@ -112,7 +145,7 @@ void Application::MouseButtonCallBack(GLFWwindow* window, int button, int action
         switch (button) {
         case GLFW_MOUSE_BUTTON_RIGHT:
             // Create a new small ball on right click
-            smallBall = new Body(CircleShape(100), x, y); 
+            smallBall = new Body(CircleShape(100), x, y, 1.f); 
             bodies.push_back(smallBall); 
             break;
         case GLFW_MOUSE_BUTTON_LEFT:
