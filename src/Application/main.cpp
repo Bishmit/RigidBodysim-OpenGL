@@ -35,7 +35,7 @@ int main() {
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
         Application::Update(window);
-        
+        Application::Render();  
         glfwSwapBuffers(window);
     }
     

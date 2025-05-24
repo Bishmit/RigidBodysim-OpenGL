@@ -99,18 +99,26 @@ void Application::Update(GLFWwindow* window) {
             Body* b = bodies[j];
             
             if(CollisionDetection::IsColliding(a, b, contact)) {
-               // contact.ResolveCollison(); 
                 CollisionSolver::ResolveCollision(contact); 
-                 Renderer::DrawCircle(contact.start, 3.f, {1.0f, 0.0f, 0.0f}); 
-                 Renderer::DrawCircle(contact.end, 3.f, {1.0f, 0.0f, 0.0f}); 
-                 Renderer::DrawLine(contact.start, { contact.start.x() + contact.normal.x() * 20, contact.start.y() + contact.normal.y() * 20}, {1.0f, 0.0f, 0.0f}); 
+                 Renderer::DrawCircle(contact.start, 3.f, {1.0f, 1.0f, 0.0f}); // Yellow point
+                 Renderer::DrawCircle(contact.end, 3.f, {1.0f, 1.0f, 0.0f});   
+
+                 Renderer::DrawLine(
+                     contact.start,
+                     { contact.start.x() + contact.normal.x() * 20,
+                     contact.start.y() + contact.normal.y() * 20 },
+                     {0.0f, 1.0f, 0.0f} // Green line
+                 );
+
                 a->isColliding = true;
                 b->isColliding = true;
             }
         }
     }
+}
 
-    // Draw bodies with appropriate colors
+void Application::Render(){
+       // Draw bodies with appropriate colors
     for (auto body : bodies) {
         glm::vec3 color = body->isColliding 
             ? glm::vec3(1.0f, 0.0f, 0.0f)  // red if colliding
@@ -119,7 +127,7 @@ void Application::Update(GLFWwindow* window) {
         if (body->shape->GetType() == CIRCLE) {
             CircleShape* circle = static_cast<CircleShape*>(body->shape);
             Renderer::DrawCircle(body->position, circle->radius, color);
-            Renderer::DrawLine(body->position, body->position + glm::vec2(circle->radius, 0.f), color);
+           // Renderer::DrawLine(body->position, body->position + glm::vec2(circle->radius, 0.f), color);
         }
         
         body->isColliding = false;

@@ -26,6 +26,7 @@ public:
     static void Init(GLFWwindow* window);
     static void SetUp();
     static void Update(GLFWwindow* window);
+    static void Render(); 
     static void Shutdown();
     static void Destroy();
     
