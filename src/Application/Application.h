@@ -48,7 +48,11 @@ private:
     static std::vector<Body*> bodies;
     static Body* greatBall;
     static Body* smallBall;
-    
+
+    // box 
+    static Body* bigBox; 
+   
+    static Body* polygon; 
     // Interaction state
     static bool isDragging;
     static bool isRigidHingeDragging;

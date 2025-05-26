@@ -1,10 +1,10 @@
 #pragma once
 
-#include "glm/glm.hpp"
+#include "Math/Vec2.h"
 #include <vector>
 
 enum ShapeType {
-    CIRCLE, POLYGON
+    CIRCLE, POLYGON, BOX
 }; 
 
 class Shape {
@@ -21,4 +21,27 @@ class CircleShape: public Shape{
     virtual ~CircleShape(); 
     ShapeType GetType() const override; 
     Shape* Clone() const override; 
-}; 
+};
+
+class PolygonShape: public Shape{
+     public:
+     int sides;
+     float radius;  
+     PolygonShape() = default; 
+     PolygonShape(const int sides, const float radius); 
+     virtual ~PolygonShape();  
+     ShapeType GetType() const override; 
+     Shape* Clone() const override; 
+};
+
+class BoxShape: public PolygonShape {
+  public: 
+  float width;
+  float height;
+
+  BoxShape(float width, float height);
+  virtual ~BoxShape();
+  ShapeType GetType() const override;
+  Shape* Clone() const override;
+ // float GetMomentOfInertia() const override;
+};

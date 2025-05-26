@@ -126,11 +126,11 @@ void Renderer::DrawRectangle(Vec2 pos, float w, float h, glm::vec3 color) {
 }
 
 
-void Renderer::DrawPolygon(const glm::vec2* points, int count, glm::vec3 color) {
+void Renderer::DrawPolygon(const std::vector<Vec2>& points, int count, glm::vec3 color) {
     std::vector<float> verts;
     for (int i = 0; i < count; ++i) {
-        verts.push_back(points[i].x);
-        verts.push_back(points[i].y);
+        verts.push_back(points[i].x());
+        verts.push_back(points[i].y());
     }
 
     GLuint vao, vbo;

@@ -2,7 +2,8 @@
 
 #include "glm/glm.hpp"
 #include "Shape.h"
-#include "Math/Vec2.h" 
+#include "Math/Vec2.h"
+#include <vector> 
 
 class Body{
   public: 
@@ -23,6 +24,8 @@ class Body{
   float invI;
   float friction; 
   bool isColliding;
+
+  float x, y; 
   
   Shape* shape = nullptr; 
   
@@ -37,5 +40,7 @@ class Body{
   bool IsStatic() const; 
   void ApplyImpulse(const Vec2& j ); 
   float GetRadius(); 
-  void SetRadius(float &r); 
+  void SetRadius(float &r);
+
+  std::vector<Vec2> GeneratePolygon(); 
 }; 

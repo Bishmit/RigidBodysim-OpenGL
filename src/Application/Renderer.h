@@ -27,7 +27,7 @@ public:
     // Drawing functions
     static void DrawCircle(Vec2 pos, float radius, glm::vec3 color);
     static void DrawRectangle(Vec2 pos, float width, float height, glm::vec3 color);
-    static void DrawPolygon(const glm::vec2* points, int count, glm::vec3 color);
+    static void DrawPolygon(const std::vector<Vec2>& points, int count, glm::vec3 color);
     static void DrawLine(Vec2 p1, Vec2 p2, glm::vec3 color);
     
     // Utility function for hit detection

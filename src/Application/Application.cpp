@@ -10,6 +10,8 @@ float Application::radius_ = 0.0f;
 
 std::vector<Body*> Application::bodies;
 Body* Application::greatBall = nullptr;
+Body* Application::polygon = nullptr;
+Body* Application::bigBox = nullptr;
 Body* Application::smallBall = nullptr;
 bool Application::isDragging = false;
 bool Application::isRigidHingeDragging = false;
@@ -43,6 +45,12 @@ void Application::SetUp() {
     greatBall = new Body(CircleShape(150), 400, 300, 0.f);
     bodies.push_back(greatBall);
     radius_ = greatBall->GetRadius();
+
+    Body* box = new Body(BoxShape(100.f , 50.f), 350.f, 350.f, 0.f); 
+    bodies.push_back(box); 
+
+    Body* polygon = new Body(PolygonShape(7, 100.f), 300.f, 400.f, 0.f); 
+    bodies.push_back(polygon); 
 }
 
 void Application::Update(GLFWwindow* window) {
@@ -118,7 +126,7 @@ void Application::Update(GLFWwindow* window) {
 }
 
 void Application::Render(){
-       // Draw bodies with appropriate colors
+// Draw bodies with appropriate colors
     for (auto body : bodies) {
         glm::vec3 color = body->isColliding 
             ? glm::vec3(1.0f, 0.0f, 0.0f)  // red if colliding
@@ -129,10 +137,24 @@ void Application::Render(){
             Renderer::DrawCircle(body->position, circle->radius, color);
            // Renderer::DrawLine(body->position, body->position + glm::vec2(circle->radius, 0.f), color);
         }
+        if (body->shape->GetType() == CIRCLE) {
+            body->isColliding = false;
+         }
         
-        body->isColliding = false;
+        if (body->shape->GetType() == POLYGON) {  
+        PolygonShape* polygonShape = static_cast<PolygonShape*>(body->shape);
+        
+        auto polyPoints = body->GeneratePolygon();  
+        Renderer::DrawPolygon(polyPoints, polyPoints.size(), glm::vec3(1.0f, 1.0f, 0.0f));
+      }   
+
+      if(body->shape->GetType() == BOX){
+        BoxShape* boxShape = static_cast<BoxShape*>(body->shape); 
+        Renderer::DrawRectangle(body->position, boxShape->width, boxShape->height, glm::vec3(1.0f, 1.0f, 0.0f)); 
+      }
     }
     
+
     // Render ImGui
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
