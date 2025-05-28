@@ -35,47 +35,31 @@ void Body::ClearTorque() {
 
 
 bool Body::IsStatic() const{
-    const float epsilon = 1e-6f; // typically a small value
+    const float epsilon = 1e-6f; 
     return std::fabs(invMass) < epsilon;  
 }
 
 void Body::ApplyImpulse(const Vec2& j, const Vec2& contactVector){
     if (IsStatic()) return;  
 
-    // Update linear velocity
     velocity += j * invMass;
 
-    // Update angular velocity
     angularVelocity += invI * contactVector.Cross(j);
 }
 
 void Body::IntegrateLinear(float dt) {
     if(IsStatic()) return;
-    // Find the acceleration based on the forces that are being applied and the mass
     acceleration = sumForces * invMass;
-
-    // Integrate the acceleration to find the new velocity
     velocity += acceleration * dt;
-
-    // Integrate the velocity to find the new position
     position += velocity * dt;
-
-    // Clear all the forces acting on the object before the next physics step
     ClearForces();
 }
 
 void Body::IntegrateAngular(float dt) {
     if(IsStatic()) return; 
-    // Find the angular acceleration based on the torque that is being applied and the moment of inertia
     angularAcceleration = sumTorque * invI;
-
-    // Integrate the angular acceleration to find the new angular velocity
     angularVelocity += angularAcceleration * dt;
-
-    // Integrate the angular velocity to find the new rotation angle
     rotation += angularVelocity * dt;
-
-    // Clear all the torque acting on the object before the next physics step
     ClearTorque();
 }
 
