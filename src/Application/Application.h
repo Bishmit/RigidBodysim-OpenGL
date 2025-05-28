@@ -36,6 +36,7 @@ public:
     // Callback functions
     static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
     static void MouseButtonCallBack(GLFWwindow* window, int button, int action, int mods);
+    static void HandleWASDMovement(GLFWwindow* window, Body* body, float speed, float deltaTime);
 
 private:
     // Application state
@@ -50,9 +51,10 @@ private:
     static Body* smallBall;
 
     // box 
-    static Body* bigBox; 
+    static Body* bigBox, *otherBox;  
    
     static Body* polygon; 
+    static float deltaTime;  
     // Interaction state
     static bool isDragging;
     static bool isRigidHingeDragging;

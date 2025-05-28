@@ -112,8 +112,9 @@ void Renderer::DrawCircle(Vec2 pos, float radius, glm::vec3 color) {
     glDrawArrays(GL_LINE_LOOP, 0, 100);
 }
 
-void Renderer::DrawRectangle(Vec2 pos, float w, float h, glm::vec3 color) {
+void Renderer::DrawRectangle(Vec2 pos, float w, float h, glm::vec3 color, float angleRadians) {
     glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(pos.x(), pos.y(), 0.0f));
+    model = glm::rotate(model, angleRadians, glm::vec3(0.0f, 0.0f, 1.0f));
     model = glm::scale(model, glm::vec3(w, h, 1.0f));
 
     glUseProgram(shaderProgram);
@@ -190,4 +191,28 @@ bool Renderer::IsPointInCircle(int pointX, int pointY, int circleX, int circleY,
     
     // Return true if the mouse is inside the circle (distance <= radius)
     return distanceSquared <= (radius * radius);
+}
+
+bool Renderer::IsPointInRotatedRect(const Vec2& point, 
+                          const Vec2& rectCenter, 
+                          float rectWidth, 
+                          float rectHeight, 
+                          float rectRotationRadians) 
+{
+    // Step 1: Translate point to rectangle local space
+    Vec2 delta = point - rectCenter;
+
+    // Step 2: Rotate delta by negative rectangle rotation
+    float cosTheta = cos(-rectRotationRadians);
+    float sinTheta = sin(-rectRotationRadians);
+
+    float localX = delta.x() * cosTheta - delta.y() * sinTheta;
+    float localY = delta.x() * sinTheta + delta.y() * cosTheta;
+
+    // Step 3: Check if inside unrotated rectangle bounds
+    float halfWidth = rectWidth / 2.0f;
+    float halfHeight = rectHeight / 2.0f;
+
+    return (localX >= -halfWidth && localX <= halfWidth &&
+            localY >= -halfHeight && localY <= halfHeight);
 }

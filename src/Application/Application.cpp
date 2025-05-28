@@ -7,11 +7,13 @@ float Application::radius = 50.0f;
 float Application::width = 100.0f;
 float Application::height = 50.0f;
 float Application::radius_ = 0.0f;
+float Application::deltaTime = 0.f; 
 
 std::vector<Body*> Application::bodies;
 Body* Application::greatBall = nullptr;
 Body* Application::polygon = nullptr;
 Body* Application::bigBox = nullptr;
+Body* Application::otherBox = nullptr;
 Body* Application::smallBall = nullptr;
 bool Application::isDragging = false;
 bool Application::isRigidHingeDragging = false;
@@ -42,14 +44,14 @@ void Application::Init(GLFWwindow* window) {
 }
 
 void Application::SetUp() {
-    greatBall = new Body(CircleShape(150), 400, 300, 0.f);
+    greatBall = new Body(CircleShape(150), 400, 300, 0.f, 0.f);
     bodies.push_back(greatBall);
     radius_ = greatBall->GetRadius();
 
-    Body* box = new Body(BoxShape(100.f , 50.f), 350.f, 350.f, 0.f); 
+    Body* box = new Body(BoxShape(100.f , 100.f), 100.f, 100.f, 0.f, 0.f); 
     bodies.push_back(box); 
 
-    Body* polygon = new Body(PolygonShape(7, 100.f), 300.f, 400.f, 0.f); 
+    Body* polygon = new Body(PolygonShape(7, 100.f), 300.f, 400.f, 0.f, 0.f); 
     bodies.push_back(polygon); 
 }
 
@@ -62,7 +64,7 @@ void Application::Update(GLFWwindow* window) {
 
     // Calculate deltaTime in seconds
     double currentTime = glfwGetTime();
-    float deltaTime = static_cast<float>(currentTime - timePreviousFrame);
+    deltaTime = static_cast<float>(currentTime - timePreviousFrame);
 
     // Clamp deltaTime to avoid large jumps
     if (deltaTime > 0.016f)
@@ -74,7 +76,7 @@ void Application::Update(GLFWwindow* window) {
     int scale = Constant::PIXELS_PER_METER; 
     // Apply forces to bodies
     for (auto body : bodies) {
-        Vec2 weight = Vec2(0.0, body->mass * 9.8 * scale);
+        Vec2 weight = Vec2(0.0, body->mass * 9.8f * scale);
         body->AddForce(weight);
 
         // Optional:
@@ -105,7 +107,7 @@ void Application::Update(GLFWwindow* window) {
         for(int j = i+1; j < bodies.size(); j++) {
             Body* a = bodies[i];
             Body* b = bodies[j];
-            
+            //HandleWASDMovement(window, a, 50.f, deltaTime); 
             if(CollisionDetection::IsColliding(a, b, contact)) {
                 CollisionSolver::ResolveCollision(contact); 
                  Renderer::DrawCircle(contact.start, 3.f, {1.0f, 1.0f, 0.0f}); // Yellow point
@@ -134,27 +136,38 @@ void Application::Render(){
         
         if (body->shape->GetType() == CIRCLE) {
             CircleShape* circle = static_cast<CircleShape*>(body->shape);
-            Renderer::DrawCircle(body->position, circle->radius, color);
-           // Renderer::DrawLine(body->position, body->position + glm::vec2(circle->radius, 0.f), color);
+          Renderer::DrawCircle(body->position, circle->radius, color);
+          Renderer::DrawLine(
+    body->position,
+    {
+        body->position.x() + cosf(body->rotation) * circle->radius,
+        body->position.y() + sinf(body->rotation) * circle->radius
+    },
+    color
+);
+
         }
         if (body->shape->GetType() == CIRCLE) {
             body->isColliding = false;
          }
         
-        if (body->shape->GetType() == POLYGON) {  
-        PolygonShape* polygonShape = static_cast<PolygonShape*>(body->shape);
+    //     if (body->shape->GetType() == POLYGON) {  
+    //     PolygonShape* polygonShape = static_cast<PolygonShape*>(body->shape);
         
-        auto polyPoints = body->GeneratePolygon();  
-        Renderer::DrawPolygon(polyPoints, polyPoints.size(), glm::vec3(1.0f, 1.0f, 0.0f));
-      }   
+    //     auto polyPoints = body->GeneratePolygon();  
+    //     Renderer::DrawPolygon(polyPoints, polyPoints.size(), glm::vec3(1.0f, 1.0f, 0.0f));
+    //   }   
 
       if(body->shape->GetType() == BOX){
         BoxShape* boxShape = static_cast<BoxShape*>(body->shape); 
-        Renderer::DrawRectangle(body->position, boxShape->width, boxShape->height, glm::vec3(1.0f, 1.0f, 0.0f)); 
+        Renderer::DrawRectangle(body->position, boxShape->width, boxShape->height, color, body->rotation); 
       }
+
+       if (body->shape->GetType() == BOX) {
+            body->isColliding = false;
+         }
     }
     
-
     // Render ImGui
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -173,15 +186,30 @@ void Application::MouseButtonCallBack(GLFWwindow* window, int button, int action
     switch (action) {
     case GLFW_PRESS:
         switch (button) {
-        case GLFW_MOUSE_BUTTON_RIGHT:
-            // Create a new small ball on right click
-            smallBall = new Body(CircleShape(100), x, y, 1.f); 
-            bodies.push_back(smallBall); 
-            break;
+         case GLFW_MOUSE_BUTTON_RIGHT:
+                if (mods & GLFW_MOD_SHIFT) {
+                    // Shift + Right Click -> Create a box
+                    otherBox = new Body(BoxShape(100.f, 100.f), x, y, 0.f, glm::radians(45.f));
+                    bodies.push_back(otherBox);
+                } else {
+                    // Just Right Click -> Create a circle
+                    smallBall = new Body(CircleShape(100), x, y, 1.f, 0.f);
+                    bodies.push_back(smallBall);
+                }
+             break;
         case GLFW_MOUSE_BUTTON_LEFT:
-            if (greatBall && Renderer::IsPointInCircle(x, y, greatBall->position.x(), greatBall->position.y(), greatBall->GetRadius())) {
+       if (greatBall && Renderer::IsPointInCircle(x, y, greatBall->position.x(), greatBall->position.y(), greatBall->GetRadius())) {
                 isDragging = true;
             }
+        if (bigBox && bigBox->shape->GetType() == BOX) {
+        BoxShape* boxShape = static_cast<BoxShape*>(bigBox->shape);
+       
+        if (Renderer::IsPointInRotatedRect({static_cast<float>(x), static_cast<float>(y)}, bigBox->position, boxShape->width, boxShape->height, bigBox->rotation)) {
+            std::cout<<"yes"<<"\n"; 
+            isDragging = true;
+        }
+    }
+         
             break;
         }     
         break;
@@ -224,4 +252,15 @@ void Application::Destroy() {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
+}
+
+void Application::HandleWASDMovement(GLFWwindow* window, Body* body, float speed, float deltaTime) {
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        body->position.y() += speed * deltaTime;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        body->position.y() -= speed * deltaTime;
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        body->position.x() -= speed * deltaTime;
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        body->position.x() += speed * deltaTime;
 }

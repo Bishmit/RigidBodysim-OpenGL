@@ -26,12 +26,17 @@ public:
 
     // Drawing functions
     static void DrawCircle(Vec2 pos, float radius, glm::vec3 color);
-    static void DrawRectangle(Vec2 pos, float width, float height, glm::vec3 color);
+    static void DrawRectangle(Vec2 pos, float width, float height, glm::vec3 color, float angleRadians);
     static void DrawPolygon(const std::vector<Vec2>& points, int count, glm::vec3 color);
     static void DrawLine(Vec2 p1, Vec2 p2, glm::vec3 color);
     
     // Utility function for hit detection
     static bool IsPointInCircle(int pointX, int pointY, int circleX, int circleY, int radius);
+    static bool IsPointInRotatedRect(const Vec2& point, 
+                          const Vec2& rectCenter, 
+                          float rectWidth, 
+                          float rectHeight, 
+                          float rectRotationRadians); 
 
 private:
     // Shader and buffer objects
