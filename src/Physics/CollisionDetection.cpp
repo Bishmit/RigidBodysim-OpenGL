@@ -86,21 +86,32 @@ bool CollisionDetection::isCircleCircleColliding(Body* a, Body* b, ContactInform
     CircleShape* bCircleShape = static_cast<CircleShape*> (b->shape);
     
     const Vec2 ab = b->position - a->position; 
-    const float radiusSum = aCircleShape->radius + bCircleShape->radius; 
+    const float radii = a->GetRadius() + b->GetRadius();
+    auto radiiSquared = radii * radii;  
 
-    bool isColliding = ab.MagnitudeSquared() <= (radiusSum * radiusSum); 
-    
-    if (!isColliding){
-        return false; 
+    bool isColliding = false; 
+    if(ab.MagnitudeSquared() <= radiiSquared){
+        isColliding = true; 
     }
 
+    if(!isColliding) return false; 
+    
     contact.a = a; 
     contact.b = b; 
-    contact. normal = ab; 
+    contact.normal = ab; 
     contact.normal.Normalize(); 
+    float abMag = ab.Magnitude();  // compute once
+
+    contact.distance.a = abMag - b->GetRadius();
+    contact.distance.b = abMag - a->GetRadius();
     
-    contact.start = b->position - contact.normal * bCircleShape->radius; 
-    contact.end = a->position + contact.normal * aCircleShape->radius; 
+    contact.start = a->position + contact.normal * contact.distance.a;
+    contact.end = b->position - contact.normal * contact.distance.b;
+
+    // Alternative method 
+    // contact.start = b->position - contact.normal * bCircleShape->radius; 
+    // contact.end = a->position + contact.normal * aCircleShape->radius; 
+
     contact.depth = (contact.end - contact.start).Magnitude();  
     return true; 
 }
