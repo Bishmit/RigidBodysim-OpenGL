@@ -31,8 +31,8 @@ void CollisionSolver::ResolveCollision(ContactInformation &contact){
     Vec2 rb = start - b->position;
 
     // Calculate velocities at the point of contact (including rotational effects)
-    Vec2 va = a->velocity + Vec2(-a->angularVelocity * ra.y(), a->angularVelocity * ra.x());
-    Vec2 vb = b->velocity + Vec2(-b->angularVelocity * rb.y(), b->angularVelocity * rb.x());
+    Vec2 va = a->velocity + Vec2(-a->angularVelocity * ra.y, a->angularVelocity * ra.x);
+    Vec2 vb = b->velocity + Vec2(-b->angularVelocity * rb.y, b->angularVelocity * rb.x);
     const Vec2 vrel = va - vb;
 
     // Calculate the collision impulse along the normal direction
@@ -42,7 +42,7 @@ void CollisionSolver::ResolveCollision(ContactInformation &contact){
     Vec2 jN = impulseDirectionNormal * impulseMagnitudeNormal;
 
     // Calculate the collision impulse along the tangent direction (using friction coefficient f)
-    Vec2 tangent = Vec2(normal.y(), -normal.x());  // Tangent is perpendicular to the normal
+    Vec2 tangent = Vec2(normal.y, -normal.x);  // Tangent is perpendicular to the normal
     float vrelDotTangent = vrel.Dot(tangent);  
     const Vec2 impulseDirectionTangent = tangent;
     float impulseMagnitudeTangent = f * -vrelDotTangent / ((a->invMass + b->invMass) + ra.Cross(tangent) * ra.Cross(tangent) * a->invI + rb.Cross(tangent) * rb.Cross(tangent) * b->invI);

@@ -1,9 +1,8 @@
-#pragma once 
+#pragma once
 #include "Body.h"
 #include "Math/Vec2.h"
 
-struct ContactInformation
-{
+struct ContactInformation {
     Body* a; 
     Body* b; 
     Vec2 start, end, normal; 
@@ -15,3 +14,4 @@ struct ContactInformation
     ContactInformation() = default; 
     ~ContactInformation() = default; 
 };
+

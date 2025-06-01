@@ -1,64 +1,48 @@
-#pragma once 
+#ifndef VEC2_H
+#define VEC2_H
 
-#include <glm/glm.hpp>
-#include <glm/gtx/rotate_vector.hpp>
-#include <glm/gtx/norm.hpp>
 #include <iostream>
 
-class Vec2
-{
-private:
-    glm::vec2 vec; 
-public:
+struct Vec2 {
+    float x;
+    float y;
+
     Vec2();
-    Vec2(float x, float y); 
-    Vec2(const glm::vec2& v);
-    ~Vec2() = default; 
-
-    float& x() { return vec.x; }
-    float& y() { return vec.y; }
-    const float& x() const { return vec.x; }
-    const float& y() const { return vec.y; }
-
-    // Basic operations
-    void Add(const Vec2& v); 
-    void Sub(const Vec2& v); 
-    void Scale(float n); 
-    Vec2 Rotate(float angle) const; 
-
-    // Vector properties
-    float Magnitude() const; 
-    float MagnitudeSquared() const; 
-
-    Vec2& Normalize();
-    Vec2 UnitVector() const;
-    Vec2 Normal() const; 
+    Vec2(float x, float y);
     
-    float Dot(const Vec2& v) const; 
-    float Cross(const Vec2& v) const; 
+    ~Vec2() = default;
 
-     // Getters
-    // float x() const { return vec.x; }
-    // float y() const { return vec.y; }
-    glm::vec2& Glm() { return vec; }
-    const glm::vec2& Glm() const { return vec; }
+    void Add(const Vec2& v);                 // v1.Add(v2)
+    void Sub(const Vec2& v);                 // v1.Sub(v2)
+    void Scale(const float n);               // v1.Scale(n)
+    Vec2 Rotate(const float angle) const;    // v1.Rotate(angle)
 
-    // Operators
-    Vec2& operator=(const Vec2& v);
-    bool operator==(const Vec2& v) const;
-    bool operator!=(const Vec2& v) const;
+    float Magnitude() const;                 // v1.Magnitude()
+    float MagnitudeSquared() const;          // v1.MagnitudeSquared()
 
-    Vec2 operator+(const Vec2& v) const;
-    Vec2 operator-(const Vec2& v) const;
-    Vec2 operator*(float n) const;
-    Vec2 operator/(float n) const;
-    Vec2 operator-() const;
+    Vec2& Normalize();                       // v1.Normalize()
+    Vec2 UnitVector() const;                 // v1.UnitVector()
+    Vec2 Normal() const;                     // n = v1.Normal()
+    Vec2 Perpendicular() const;
 
-    Vec2& operator+=(const Vec2& v);
-    Vec2& operator-=(const Vec2& v);
-    Vec2& operator*=(float n);
-    Vec2& operator/=(float n);
+    float Dot(const Vec2& v) const;          // v1.Dot(v2)
+    float Cross(const Vec2& v) const;        // v1.Cross(v2)
+
+    Vec2& operator = (const Vec2& v);        // v1 = v2
+    bool operator == (const Vec2& v) const;  // v1 == v2
+    bool operator != (const Vec2& v) const;  // v1 != v2
+    
+    Vec2 operator + (const Vec2& v) const;   // v1 + v2
+    Vec2 operator - (const Vec2& v) const;   // v1 - v2
+    Vec2 operator * (const float n) const;   // v1 * n
+    Vec2 operator / (const float n) const;   // v1 / n
+    Vec2 operator - ();                      // -v1
+
+    Vec2& operator += (const Vec2& v);       // v1 += v2
+    Vec2& operator -= (const Vec2& v);       // v1 -= v2
+    Vec2& operator *= (const float n);       // v1 *= n
+    Vec2& operator /= (const float n);       // v1 /= n
 };
 
-std::ostream& operator<<(std::ostream& os, const Vec2& v);
 
+#endif

@@ -9,8 +9,10 @@ GLuint Renderer::circleVAO = 0, Renderer::circleVBO = 0;
 GLuint Renderer::rectVAO = 0, Renderer::rectVBO = 0;
 
 const float Renderer::rectVertices[8] = {
-    -0.5f, -0.5f, 0.5f, -0.5f,
-     0.5f,  0.5f, -0.5f,  0.5f
+    -0.5f, -0.5f,
+     0.5f, -0.5f,
+     0.5f,  0.5f,
+    -0.5f,  0.5f
 };
 
 const char* Renderer::vertexShaderSource = R"(
@@ -100,7 +102,7 @@ void Renderer::CleanupRenderer() {
 
 // === Drawing Helpers ===
 void Renderer::DrawCircle(Vec2 pos, float radius, glm::vec3 color) {
-    glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(pos.x(), pos.y(), 0.0f));
+    glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(pos.x, pos.y, 0.0f));
     model = glm::scale(model, glm::vec3(radius));
 
     glUseProgram(shaderProgram);
@@ -113,25 +115,34 @@ void Renderer::DrawCircle(Vec2 pos, float radius, glm::vec3 color) {
 }
 
 void Renderer::DrawRectangle(Vec2 pos, float w, float h, glm::vec3 color, float angleRadians) {
-    glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(pos.x(), pos.y(), 0.0f));
+     glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(pos.x, pos.y, 0.0f));
     model = glm::rotate(model, angleRadians, glm::vec3(0.0f, 0.0f, 1.0f));
     model = glm::scale(model, glm::vec3(w, h, 1.0f));
 
     glUseProgram(shaderProgram);
-    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "uModel"), 1, GL_FALSE, glm::value_ptr(model));
-    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "uProj"), 1, GL_FALSE, glm::value_ptr(projection));
-    glUniform3f(glGetUniformLocation(shaderProgram, "uColor"), color.r, color.g, color.b);
+    
+    // Set uniforms for the shader
+    GLint modelLoc = glGetUniformLocation(shaderProgram, "uModel");
+    GLint projLoc = glGetUniformLocation(shaderProgram, "uProj");
+    GLint colorLoc = glGetUniformLocation(shaderProgram, "uColor");
 
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+    glUniform3f(colorLoc, color.r, color.g, color.b);
+
+    // Bind the VAO and draw the rectangle as a line loop
     glBindVertexArray(rectVAO);
     glDrawArrays(GL_LINE_LOOP, 0, 4);
+
 }
 
 
 void Renderer::DrawPolygon(const std::vector<Vec2>& points, int count, glm::vec3 color) {
     std::vector<float> verts;
     for (int i = 0; i < count; ++i) {
-        verts.push_back(points[i].x());
-        verts.push_back(points[i].y());
+        verts.push_back(points[i].x);
+        verts.push_back(points[i].y);
     }
 
     GLuint vao, vbo;
@@ -157,8 +168,8 @@ void Renderer::DrawPolygon(const std::vector<Vec2>& points, int count, glm::vec3
 
 void Renderer::DrawLine(Vec2 p1, Vec2 p2, glm::vec3 color) {
     float verts[] = {
-        p1.x(), p1.y(),
-        p2.x(), p2.y()
+        p1.x, p1.y,
+        p2.x, p2.y
     };
 
     GLuint vao, vbo;
@@ -182,6 +193,21 @@ void Renderer::DrawLine(Vec2 p1, Vec2 p2, glm::vec3 color) {
     glDeleteVertexArrays(1, &vao);
 }
 
+void Renderer::DrawRect(int x, int y, int width, int height, glm::vec3 color) {
+    float halfWidth = width / 2.0f;
+    float halfHeight = height / 2.0f;
+
+    Vec2 topLeft(x - halfWidth, y - halfHeight);
+    Vec2 topRight(x + halfWidth, y - halfHeight);
+    Vec2 bottomRight(x + halfWidth, y + halfHeight);
+    Vec2 bottomLeft(x - halfWidth, y + halfHeight);
+
+    DrawLine(topLeft, topRight, color);       // Top
+    DrawLine(topRight, bottomRight, color);   // Right
+    DrawLine(bottomRight, bottomLeft, color); // Bottom
+    DrawLine(bottomLeft, topLeft, color);     // Left
+}
+
 
 bool Renderer::IsPointInCircle(int pointX, int pointY, int circleX, int circleY, int radius) {
     // Calculate the squared distance between the point and the circle center
@@ -191,28 +217,4 @@ bool Renderer::IsPointInCircle(int pointX, int pointY, int circleX, int circleY,
     
     // Return true if the mouse is inside the circle (distance <= radius)
     return distanceSquared <= (radius * radius);
-}
-
-bool Renderer::IsPointInRotatedRect(const Vec2& point, 
-                          const Vec2& rectCenter, 
-                          float rectWidth, 
-                          float rectHeight, 
-                          float rectRotationRadians) 
-{
-    // Step 1: Translate point to rectangle local space
-    Vec2 delta = point - rectCenter;
-
-    // Step 2: Rotate delta by negative rectangle rotation
-    float cosTheta = cos(-rectRotationRadians);
-    float sinTheta = sin(-rectRotationRadians);
-
-    float localX = delta.x() * cosTheta - delta.y() * sinTheta;
-    float localY = delta.x() * sinTheta + delta.y() * cosTheta;
-
-    // Step 3: Check if inside unrotated rectangle bounds
-    float halfWidth = rectWidth / 2.0f;
-    float halfHeight = rectHeight / 2.0f;
-
-    return (localX >= -halfWidth && localX <= halfWidth &&
-            localY >= -halfHeight && localY <= halfHeight);
 }
