@@ -66,6 +66,7 @@ GLuint Renderer::compileShaderProgram() {
 
 void Renderer::InitRenderer(int screenWidth, int screenHeight) {
     projection = glm::ortho(0.0f, (float)screenWidth, (float)screenHeight, 0.0f, -1.0f, 1.0f);
+
     shaderProgram = compileShaderProgram();
 
     // Circle VAO
@@ -217,4 +218,37 @@ bool Renderer::IsPointInCircle(int pointX, int pointY, int circleX, int circleY,
     
     // Return true if the mouse is inside the circle (distance <= radius)
     return distanceSquared <= (radius * radius);
+}
+
+Monitors Renderer::GetMonitor(GLFWwindow* window){
+    Monitors monitor; 
+
+    int windowX, windowY;
+    glfwGetWindowPos(window, &windowX, &windowY);
+
+    int monitorCount; 
+    GLFWmonitor** monitors = glfwGetMonitors(&monitorCount);
+
+    for (int i = 0; i < monitorCount; ++i) {
+    int mx, my;
+    glfwGetMonitorPos(monitors[i], &mx, &my);
+    const GLFWvidmode* mode = glfwGetVideoMode(monitors[i]);
+    
+    int mw = mode->width;
+    int mh = mode->height;
+
+        // Check if window is within this monitor's bounds
+        if (windowX >= mx && windowX < mx + mw &&
+            windowY >= my && windowY < my + mh) {
+            monitor.x = mw;
+            monitor.y = mh;
+            return monitor;
+        }
+    }
+
+    // Return primary monitor if no match found 
+    const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+    monitor.x = mode->width;
+    monitor.y = mode->height;
+    return monitor;
 }

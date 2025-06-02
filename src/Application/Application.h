@@ -11,6 +11,7 @@
 #include "imgui_impl_opengl3.h"
 #include <imgui.h>
 #include <random>
+#include <algorithm>
 
 #include "Physics/Body.h"
 #include "Physics/Shape.h"
@@ -28,6 +29,7 @@ public:
     static void SetUp();
     static void Update(GLFWwindow* window);
     static void Render(); 
+    static void ClearScene(GLFWwindow* window); 
     static void Shutdown();
     static void Destroy();
     

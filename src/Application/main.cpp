@@ -13,6 +13,7 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     
     // Create window
+
     GLFWwindow* window = glfwCreateWindow(800, 600, "Rigid Body Physics Simulation", nullptr, nullptr);
     if (!window) {
         std::cerr << "Failed to create GLFW window\n";
@@ -36,6 +37,7 @@ int main() {
         glfwPollEvents();
         Application::Update(window);
         Application::Render();  
+        Application::ClearScene(window); 
         glfwSwapBuffers(window);
     }
     

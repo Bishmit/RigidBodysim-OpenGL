@@ -319,3 +319,26 @@ int Application::RandomNumber(int start, int end){
     std::uniform_int_distribution<>dist(0, allowed.size() - 1); 
     return allowed[dist(gen)];
 }
+
+void Application::ClearScene(GLFWwindow* window) {
+    Renderer r; 
+    auto monitor = r.GetMonitor(window);  
+    
+    auto it = std::remove_if(bodies.begin(), bodies.end(),
+        [monitor](Body* body) {
+            if ((body->position.x > monitor.x || body->position.y > monitor.y) && !body->IsStatic()) {
+                std::cout << "Deleting body at position (" 
+                          << body->position.x << ", " 
+                          << body->position.y << ") "
+                          << "because it exceeds monitor size (" 
+                          << monitor.x << ", " << monitor.y << ").\n";
+                delete body;
+                return true;
+            }
+             return false; 
+        });
+
+    if (it != bodies.end()) {
+        bodies.erase(it, bodies.end());
+    } 
+}
