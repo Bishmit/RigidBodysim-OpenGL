@@ -7,9 +7,15 @@ float Application::radius = 50.0f;
 float Application::width = 100.0f;
 float Application::height = 50.0f;
 float Application::radius_ = 0.0f;
-float Application::restiutionValue = 0.5f; 
-float Application::gravity = 10.f; 
+float Application::restiutionValue = 0.65f; 
+float Application::gravity = 9.81f; 
 float Application::deltaTime = 0.f; 
+bool Application::pause = false; 
+bool Application::showNormal = false;
+bool Application::showCollisionPoint = false;
+int Application::maxIteration = 3; 
+float Application::correctionValue = 0.85f; 
+float Application::frictionValue = 0.5f; 
 
 std::vector<Body*> Application::bodies;
 Body* Application::greatBall = nullptr;
@@ -51,9 +57,9 @@ void Application::SetUp() {
     bodies.push_back(greatBall);
     radius_ = greatBall->GetRadius();
 
-    Body* floor1 = new Body(BoxShape(800.f , 20.f), 700.f, 350.f, 0.f, glm::radians(15.f)); 
+    Body* floor1 = new Body(BoxShape(800.f , 20.f), 700.f, 450.f, 0.f, glm::radians(15.f)); 
     bodies.push_back(floor1); 
-    Body* floor2 = new Body(BoxShape(800.f , 20.f), 1000.f, 750.f, 0.f, glm::radians(-15.f)); 
+    Body* floor2 = new Body(BoxShape(800.f , 20.f), 1200.f, 750.f, 0.f, glm::radians(0.f)); 
     bodies.push_back(floor2); 
 }
 
@@ -76,9 +82,13 @@ void Application::Update(GLFWwindow* window) {
     timePreviousFrame = currentTime;
 
     int scale = Constants::PIXELS_PER_METER; 
+
+    // pause/Resume 
+
+    if(!pause){
     // Apply forces to bodies
     for (auto body : bodies) {
-        Vec2 weight = Vec2(0.0, body->mass * 10.f * scale);
+        Vec2 weight = Vec2(0.0, body->mass * body->gravity * scale);
         body->AddForce(weight);
 
         // Optional:
@@ -92,6 +102,7 @@ void Application::Update(GLFWwindow* window) {
         body->Update(deltaTime);
         body->restitution = restiutionValue;
         body->gravity = gravity;  
+        body->friction = frictionValue; 
     }
 
     // for basic applying force and all other things
@@ -105,7 +116,7 @@ void Application::Update(GLFWwindow* window) {
             greatBall->position.y = mouseY;
         }
     }
-
+ }
     // Detect collisions
 // Update vertices before collision checks
 for (Body* body : bodies) {
@@ -115,40 +126,50 @@ for (Body* body : bodies) {
 }
 
 // Collision loop
+std::cout<<"iteration"<<maxIteration<<"\n"; 
+for (int n = 0; n < maxIteration; n++){
 for (size_t i = 0; i < bodies.size() - 1; i++) {
     for (size_t j = i + 1; j < bodies.size(); j++) {
         Body* a = bodies[i];
         Body* b = bodies[j];
 
-        ContactInformation contact;
-        HandleWASDMovement(window, a, 50.f, deltaTime); 
+        ContactInformation contact; 
         if (a && a->shape) { 
             bool collisionHappened = CollisionDetection::isColliding(a, b, contact);
             
             if (collisionHappened) {
+                a->allowRotation = true; 
+                b->allowRotation = true; 
                 CollisionSolver::ResolveCollision(contact); 
+
+                if(showCollisionPoint){
                 Renderer::DrawCircle(contact.start, 3.f, {1.0f, 0.0f, 0.0f});
                 Renderer::DrawCircle(contact.end, 3.f, {0.0f, 1.0f, 0.0f});
+                }
                 
+                if(showNormal){
                 Vec2 direction = contact.end - contact.start;
                 if (direction.Magnitude() > 0.0f) {
                     direction = direction.Normalize();
                     Renderer::DrawLine(
                         contact.start,
-                        contact.start + direction * 5.0f,
+                        contact.start + direction * 15.0f,
                         {0.0f, 1.0f, 1.0f}
                     );
                 }
+              }
             }
         } else {
             std::cerr << "a or a->shape is null.\n";
         }
 
     }
-}
+  } 
 }
 
-void Application::Render(){
+}
+
+void Application::Render(GLFWwindow* window){
 // Draw bodies with appropriate colors
     for (auto body : bodies) {        
         if (body->shape->GetType() == CIRCLE) {
@@ -194,7 +215,7 @@ void Application::Render(){
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
     
-    RenderGUI();
+    RenderGUI(window);
     
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -253,14 +274,74 @@ void Application::MouseButtonCallBack(GLFWwindow* window, int button, int action
     }
 }
 
+float Application::EaseOut(float a, float b, float t) {
+    t = 1 - powf(1 - t, 3);  // cubic ease out
+    return a + (b - a) * t;
+}
 
-void Application::RenderGUI() {
-    ImGui::Begin("Application Demo");
+void Application::RenderGUI(GLFWwindow* window) {
+    static bool show_panel = true; // toggle this with a key/button
+    static float panel_x = 0.0f;
+    float panel_width = 350.0f;
+    
+    ImGuiIO& io = ImGui::GetIO();
+    float screen_width = io.DisplaySize.x;
+    float screen_height = io.DisplaySize.y;
+    float target_x = show_panel ? (screen_width - panel_width) : screen_width;
+    float dt = io.DeltaTime;
+
+    // Smooth slide animation
+     panel_x = EaseOut(panel_x, target_x, dt * 10.0f);
+
+    ImGui::SetNextWindowPos(ImVec2(panel_x, 0), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(panel_width, screen_height), ImGuiCond_Always);
+    ImGui::Begin("RigidBody Properties", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove);
+     ImGui::Text("Note: Press 'H' to toggle the side menu");
+
     if (ImGui::SliderFloat("Circle Radius", &radius_, 10.0f, 200.0f)) {
         greatBall->SetRadius(radius_);
     }
+    ImGui::SliderFloat("Restitution", &restiutionValue, 0.0f, 1.0f);
+    ImGui::SliderFloat("Gravity", &gravity, -10.0f, 10.0f);
+    ImGui::SliderFloat("Friction", &frictionValue, 0.0f, 1.0f);
+
+    if (ImGui::Button("Clear Scene")) {
+        bool success = ClearScreen();
+        if (success) {
+            ImGui::Text("Scene cleared successfully!");
+        } else {
+            ImGui::Text("Failed to clear scene.");
+        }
+    }
+
+    ImGui::SameLine(0, 15.f); 
+    if (ImGui::Button(pause ? "Resume" : "Pause")) {
+        pause = !pause;
+    }
+
+    if (ImGui::Button(showNormal ? "Hide Normals" : "Show Normals")) {
+        showNormal = !showNormal;
+    }
+
+    ImGui::SameLine(0, 15.f);
+    if (ImGui::Button(showCollisionPoint ? "Hide Contact Point" : "Show Contact Point")) {
+        showCollisionPoint = !showCollisionPoint;
+    }
+
+    ImGui::InputInt("Max Iteration", &maxIteration, 1.f);
+    if (ImGui::SliderFloat("Correction", &correctionValue, 0.0f, 1.0f)) {
+        CollisionSolver::SetCorrectionValue(correctionValue);
+    }
+
     ImGui::End();
+
+    // Optional: toggle the panel with a key or button
+    if (ImGui::IsKeyPressed(ImGuiKey_H)) {
+        show_panel = !show_panel;
+    }
 }
+
+
 
 void Application::framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
@@ -285,20 +366,7 @@ void Application::Destroy () {
     ImGui::DestroyContext();
 }
 
-void Application::HandleWASDMovement(GLFWwindow* window, Body* body, float speed, float deltaTime) {
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        body->position.y += speed * deltaTime;
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        body->position.y -= speed * deltaTime;
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        body->position.x -= speed * deltaTime;
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        body->position.x += speed * deltaTime;
-}
-
 bool Application::isPointInBox(int pointX, int pointY, Body* body, BoxShape* boxShape) {
-    // Simple AABB (Axis-Aligned Bounding Box) check
-    // This assumes the box is not rotated significantly
     float halfWidth = boxShape->width / 2.0f;
     float halfHeight = boxShape->height / 2.0f;
     
@@ -320,18 +388,13 @@ int Application::RandomNumber(int start, int end){
     return allowed[dist(gen)];
 }
 
-void Application::ClearScene(GLFWwindow* window) {
+void Application::ClearOffScreenBodies(GLFWwindow* window) {
     Renderer r; 
     auto monitor = r.GetMonitor(window);  
     
     auto it = std::remove_if(bodies.begin(), bodies.end(),
         [monitor](Body* body) {
             if ((body->position.x > monitor.x || body->position.y > monitor.y) && !body->IsStatic()) {
-                std::cout << "Deleting body at position (" 
-                          << body->position.x << ", " 
-                          << body->position.y << ") "
-                          << "because it exceeds monitor size (" 
-                          << monitor.x << ", " << monitor.y << ").\n";
                 delete body;
                 return true;
             }
@@ -341,4 +404,18 @@ void Application::ClearScene(GLFWwindow* window) {
     if (it != bodies.end()) {
         bodies.erase(it, bodies.end());
     } 
+}
+
+bool Application::ClearScreen() {
+    auto it = std::remove_if(bodies.begin(), bodies.end(), [](Body* body) {
+        if (!body) return false; 
+        if (!body->IsStatic()) {
+            delete body;        
+            return true;         
+        }
+        return false;          
+    });
+
+    bodies.erase(it, bodies.end());
+    return true;
 }

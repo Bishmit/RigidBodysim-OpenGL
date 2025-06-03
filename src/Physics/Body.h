@@ -30,6 +30,7 @@ struct Body {
   float invI;
   float friction; 
   bool isColliding;
+  bool allowRotation; 
 
   float x, y; 
 

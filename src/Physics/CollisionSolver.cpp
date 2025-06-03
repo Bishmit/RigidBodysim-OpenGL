@@ -1,8 +1,11 @@
 #include "CollisionSolver.h"
 
 void CollisionSolver::ResolveOverlap(ContactInformation &contact){
-    
+
     if(contact.a->IsStatic() && contact.b->IsStatic()) return; 
+
+    bool aIsCircle = contact.a->shape->GetType() == CIRCLE;
+    bool bIsCircle = contact.b->shape->GetType() == CIRCLE;
 
     float totalInverseMass = contact.a->invMass + contact.b->invMass; 
 
@@ -11,8 +14,18 @@ void CollisionSolver::ResolveOverlap(ContactInformation &contact){
     float positionCorrectionA =  (contact.depth * contact.a->invMass) / totalInverseMass; 
     float positionCorrectionB =  (contact.depth * contact.b->invMass) / totalInverseMass; 
 
-    contact.a->position -= contact.normal * positionCorrectionA;
-    contact.b->position += contact.normal * positionCorrectionB; 
+    SetCorrectionValue(correctionFactor); 
+    std::cout<<"correctionFactor "<<correctionFactor<<"\n"; 
+    float _correctionFactor = (aIsCircle && bIsCircle) ? 1.f : correctionFactor;
+    contact.a->position -= contact.normal * positionCorrectionA * _correctionFactor; 
+    contact.b->position += contact.normal * positionCorrectionB * _correctionFactor;  
+
+    contact.a->shape->UpdateVertices(contact.a->rotation, contact.a->position); 
+    contact.b->shape->UpdateVertices(contact.b->rotation, contact.b->position); 
+}
+
+void CollisionSolver::SetCorrectionValue(float &correction){
+    correctionFactor = correction;  
 }
 
 void CollisionSolver::ResolveCollision(ContactInformation &contact){

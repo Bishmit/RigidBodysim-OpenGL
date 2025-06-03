@@ -28,13 +28,15 @@ public:
     static void Init(GLFWwindow* window);
     static void SetUp();
     static void Update(GLFWwindow* window);
-    static void Render(); 
-    static void ClearScene(GLFWwindow* window); 
+    static float EaseOut(float a, float b, float t); 
+    static void Render(GLFWwindow* window); 
+    static void ClearOffScreenBodies(GLFWwindow* window); 
+    static bool ClearScreen(); 
     static void Shutdown();
     static void Destroy();
     
     // User interaction
-    static void RenderGUI();
+    static void RenderGUI(GLFWwindow* window);
     
     // Callback functions
     static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -48,9 +50,14 @@ public:
     static float radius;
     static float width, height;
     static float radius_;
-    static float restiutionValue; 
     static float gravity; 
-    
+    static float restiutionValue; 
+    static bool pause; 
+    static bool showNormal, showCollisionPoint; 
+    static int maxIteration; 
+    static float correctionValue;
+    static float frictionValue;
+
     // Physics objects
 
     // ball

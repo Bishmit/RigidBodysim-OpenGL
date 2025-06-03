@@ -3,7 +3,7 @@
 #include <iostream>
 
 Body::Body(const Shape& shape, float x, float y, float mass, float rotation): shape(shape.Clone()), position(Vec2(x, y)), velocity(Vec2(0, 0)),
-      acceleration(Vec2(0, 0)), sumForces(Vec2(0, 0)), sumTorque(0.0), isColliding(false), mass(mass), restitution(1.0), gravity(10.0), friction(0.5), x(x), y(y), rotation(rotation)
+      acceleration(Vec2(0, 0)), sumForces(Vec2(0, 0)), sumTorque(0.0), isColliding(false), mass(mass), restitution(1.0), gravity(10.0), friction(0.5), x(x), y(y), rotation(rotation), allowRotation(false)
 {
     if (mass != 0.0) {
         this->invMass = 1.0 / mass;
@@ -70,13 +70,15 @@ void Body::IntegrateLinear(float dt) {
 }
 
 void Body::IntegrateAngular(float dt) {
-    if(IsStatic()) return; 
+    if(IsStatic()) return;
+    
+    if(allowRotation){
     angularAcceleration = sumTorque * invI;
 
     angularVelocity += angularAcceleration * dt;
 
     rotation += angularVelocity * dt;
-
+   }
     ClearTorque();
 }
 
@@ -108,4 +110,3 @@ void Body::SetRadius(float &r){
         circle->radius = r; 
     }
 }
-

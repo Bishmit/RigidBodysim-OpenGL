@@ -36,8 +36,8 @@ int main() {
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
         Application::Update(window);
-        Application::Render();  
-        Application::ClearScene(window); 
+        Application::Render(window);  
+        Application::ClearOffScreenBodies(window); 
         glfwSwapBuffers(window);
     }
     
