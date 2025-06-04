@@ -41,10 +41,11 @@ public:
     // Callback functions
     static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
     static void MouseButtonCallBack(GLFWwindow* window, int button, int action, int mods);
-    static void HandleWASDMovement(GLFWwindow* window, Body* body, float speed, float deltaTime);
     private:
     static int RandomNumber(int start, int end); 
+    static bool isPointInCircle(int pointX, int pointY, int circleX, int circleY, int radius);
     static bool isPointInBox(int pointX, int pointY, Body* body, BoxShape* boxShape);
+    
     // Application state
     static int screenWidth, screenHeight;
     static float radius;
@@ -62,7 +63,6 @@ public:
 
     // ball
     static std::vector<Body*> bodies;
-    static Body* greatBall;
     static Body* smallBall;
 
     // box 
@@ -77,6 +77,9 @@ public:
     // Interaction state
     static bool isDragging;
     static bool isRigidHingeDragging;
+    static Body* greatBall; 
+    static Body* draggedBody;
+    static Vec2 dragOffset;
     
     static ContactInformation contact; 
     

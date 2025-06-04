@@ -53,4 +53,8 @@ struct Body {
   void IntegrateLinear(float dt);
   void IntegrateAngular(float dt);
   void IntegrateVelocities(const float dt);
+
+    void setSize(float w, float h);
+    void setRotation(float rot);
+    // void setStatic(bool isStatic);
 };

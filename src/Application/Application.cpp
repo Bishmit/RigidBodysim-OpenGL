@@ -26,6 +26,8 @@ Body* Application::otherBox = nullptr;
 Body* Application::smallBall = nullptr;
 bool Application::isDragging = false;
 bool Application::isRigidHingeDragging = false;
+Body* Application::draggedBody = nullptr;
+Vec2 Application::dragOffset; 
 ContactInformation Application::contact; 
 
 void Application::Init(GLFWwindow* window) {
@@ -111,22 +113,21 @@ void Application::Update(GLFWwindow* window) {
             double mouseX, mouseY; 
             glfwGetCursorPos(window, &mouseX, &mouseY);
 
-            // Update the position to follow the mouse
-            greatBall->position.x = mouseX;
-            greatBall->position.y = mouseY;
+                // Update the position to follow the mouse
+                greatBall->position.x = mouseX;
+                greatBall->position.y = mouseY;
+            }
         }
     }
- }
-    // Detect collisions
-// Update vertices before collision checks
-for (Body* body : bodies) {
-    if (body && body->shape) {
-        body->shape->UpdateVertices(body->rotation, body->position);
+        // Detect collisions
+    // Update vertices before collision checks
+    for (Body* body : bodies) {
+        if (body && body->shape) {
+            body->shape->UpdateVertices(body->rotation, body->position);
+        }
     }
-}
 
 // Collision loop
-std::cout<<"iteration"<<maxIteration<<"\n"; 
 for (int n = 0; n < maxIteration; n++){
 for (size_t i = 0; i < bodies.size() - 1; i++) {
     for (size_t j = i + 1; j < bodies.size(); j++) {
@@ -274,6 +275,7 @@ void Application::MouseButtonCallBack(GLFWwindow* window, int button, int action
     }
 }
 
+
 float Application::EaseOut(float a, float b, float t) {
     t = 1 - powf(1 - t, 3);  // cubic ease out
     return a + (b - a) * t;
@@ -333,6 +335,50 @@ void Application::RenderGUI(GLFWwindow* window) {
         CollisionSolver::SetCorrectionValue(correctionValue);
     }
 
+        ImGui::BeginChild("Canvas", ImVec2(400, 600), true);
+        ImDrawList* canvas = ImGui::GetWindowDrawList();
+        ImVec2 canvasPos = ImGui::GetCursorScreenPos();
+
+        // Box Icon
+        canvas->AddRect(
+        ImVec2(canvasPos.x, canvasPos.y),                            // Top-left
+        ImVec2(canvasPos.x + 30, canvasPos.y + 30),                  // Bottom-right
+        IM_COL32(255, 255, 0, 255),                                  // Yellow outline
+        0.0f,                                                        // No corner rounding
+        ImDrawFlags_None,
+        2.0f                                                         // Thickness
+        );
+
+        ImGui::Dummy(ImVec2(30, 30));
+        ImGui::SameLine();
+        ImGui::Text("Add Box");
+        
+        static float addBoxWidth = 60.f; 
+        static float addBoxHeight = 60.f; 
+        static float rotation = 0.f; 
+        static float isNonStatic = 1; 
+
+        bool checked = (isNonStatic != 1); 
+
+        ImGui::Text("Box Size:");
+        ImGui::InputFloat("Width", &addBoxWidth, 1.0f, 10.0f, "%.1f");
+        ImGui::InputFloat("Height", &addBoxHeight, 1.0f, 10.0f, "%.1f");
+
+        // === Create Button ===
+        if (ImGui::Button("Create")) {
+            Body* addBox = new Body(BoxShape(addBoxWidth , addBoxHeight), 500.f, 700.f, isNonStatic, rotation);
+            bodies.push_back(addBox);
+        }
+
+        ImGui::SameLine();
+        if(ImGui::Checkbox("Static", &checked)){
+            isNonStatic = checked ? 0 : 1; 
+        }
+        ImGui::SliderFloat("Rotation", &rotation, -360.f, 360.0f);
+
+
+        ImGui::EndChild();
+
     ImGui::End();
 
     // Optional: toggle the panel with a key or button
@@ -340,7 +386,6 @@ void Application::RenderGUI(GLFWwindow* window) {
         show_panel = !show_panel;
     }
 }
-
 
 
 void Application::framebuffer_size_callback(GLFWwindow* window, int width, int height) {
@@ -366,7 +411,21 @@ void Application::Destroy () {
     ImGui::DestroyContext();
 }
 
+bool Application::isPointInCircle(int pointX, int pointY, int circleX, int circleY, int radius) {
+    // Calculate the squared distance between the point and the circle center
+    int deltaX = pointX - circleX;
+    int deltaY = pointY - circleY;
+    int distanceSquared = deltaX * deltaX + deltaY * deltaY;
+    
+    // Return true if the mouse is inside the circle (distance <= radius)
+    return distanceSquared <= (radius * radius);
+}
+
+// Function to check if point is inside a box (rectangle)
 bool Application::isPointInBox(int pointX, int pointY, Body* body, BoxShape* boxShape) {
+    // Simple AABB (Axis-Aligned Bounding Box) check
+    // This assumes the box is not rotated significantly
+    std::cout<<"running"<<"\n"; 
     float halfWidth = boxShape->width / 2.0f;
     float halfHeight = boxShape->height / 2.0f;
     
@@ -407,6 +466,7 @@ void Application::ClearOffScreenBodies(GLFWwindow* window) {
 }
 
 bool Application::ClearScreen() {
+    
     auto it = std::remove_if(bodies.begin(), bodies.end(), [](Body* body) {
         if (!body) return false; 
         if (!body->IsStatic()) {

@@ -110,3 +110,18 @@ void Body::SetRadius(float &r){
         circle->radius = r; 
     }
 }
+
+void Body::setSize(float w, float h) {
+    BoxShape* boxShape = static_cast<BoxShape*> (shape); 
+    boxShape->width = w; 
+    boxShape->height = h;  
+}
+
+void Body::setRotation(float rot) {
+    rot = rotation; 
+}
+
+// void Body::setStatic(bool isStatic){
+//     bool _isStatic = IsStatic(); 
+//     isStatic =  _isStatic; 
+// }
