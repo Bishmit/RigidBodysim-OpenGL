@@ -30,8 +30,10 @@ public:
     static void Update(GLFWwindow* window);
     static float EaseOut(float a, float b, float t); 
     static void Render(GLFWwindow* window); 
+    static Body* SelectCircleInCanvas(double &x, double &y, Body* clickedBody); 
     static void ClearOffScreenBodies(GLFWwindow* window); 
-    static bool ClearScreen(); 
+    static bool ClearDynamicObjectOnScreen(); 
+    static bool DeleteParticularBody(Body* body); 
     static void Shutdown();
     static void Destroy();
     
@@ -43,9 +45,7 @@ public:
     static void MouseButtonCallBack(GLFWwindow* window, int button, int action, int mods);
     private:
     static int RandomNumber(int start, int end); 
-    static bool isPointInCircle(int pointX, int pointY, int circleX, int circleY, int radius);
-    static bool isPointInBox(int pointX, int pointY, Body* body, BoxShape* boxShape);
-    
+ 
     // Application state
     static int screenWidth, screenHeight;
     static float radius;
@@ -76,9 +76,10 @@ public:
 
     // Interaction state
     static bool isDragging;
-    static bool isRigidHingeDragging;
+    static bool isRecentBodySelected; 
     static Body* greatBall; 
     static Body* draggedBody;
+    static Body* recentSelectedBody; 
     static Vec2 dragOffset;
     
     static ContactInformation contact; 

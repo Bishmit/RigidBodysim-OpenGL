@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "Math/Vec2.h"
+#include "Physics/Body.h"
 
  struct Monitors
     {
@@ -40,6 +41,7 @@ public:
     
     // Utility function for hit detection
     static bool IsPointInCircle(int pointX, int pointY, int circleX, int circleY, int radius);
+    static bool IsPointInBox(int pointX, int pointY, Body* body, BoxShape* boxShape); 
 
 private:
     // Shader and buffer objects

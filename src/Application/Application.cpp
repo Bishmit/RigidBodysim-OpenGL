@@ -25,8 +25,9 @@ Body* Application::bigBox = nullptr;
 Body* Application::otherBox = nullptr;
 Body* Application::smallBall = nullptr;
 bool Application::isDragging = false;
-bool Application::isRigidHingeDragging = false;
+bool Application::isRecentBodySelected = false; 
 Body* Application::draggedBody = nullptr;
+Body* Application::recentSelectedBody = nullptr;
 Vec2 Application::dragOffset; 
 ContactInformation Application::contact; 
 
@@ -55,13 +56,13 @@ void Application::Init(GLFWwindow* window) {
 }
 
 void Application::SetUp() {
-    greatBall = new Body(CircleShape(150), 400, 300, 0.f, 0.f);
+    greatBall = new Body(CircleShape(100), 400, 300, 0.f, 0.f);
     bodies.push_back(greatBall);
     radius_ = greatBall->GetRadius();
 
     Body* floor1 = new Body(BoxShape(800.f , 20.f), 700.f, 450.f, 0.f, glm::radians(15.f)); 
     bodies.push_back(floor1); 
-    Body* floor2 = new Body(BoxShape(800.f , 20.f), 1200.f, 750.f, 0.f, glm::radians(0.f)); 
+    Body* floor2 = new Body(BoxShape(800.f , 20.f), 1200.f, 750.f, 0.f, glm::radians(-15.f)); 
     bodies.push_back(floor2); 
 }
 
@@ -109,13 +110,17 @@ void Application::Update(GLFWwindow* window) {
 
     // for basic applying force and all other things
     for (auto body : bodies) {
-        if(isDragging){
+        if(draggedBody){
             double mouseX, mouseY; 
             glfwGetCursorPos(window, &mouseX, &mouseY);
 
-                // Update the position to follow the mouse
-                greatBall->position.x = mouseX;
-                greatBall->position.y = mouseY;
+              // Update the position to follow the mouse
+                draggedBody->position.x = mouseX - dragOffset.x;
+                draggedBody->position.y = mouseY - dragOffset.y;
+
+                // Reset velocity for dragged objects to prevent unwanted movement
+                draggedBody->velocity.x = 0;
+                draggedBody->velocity.y = 0;
             }
         }
     }
@@ -185,7 +190,13 @@ void Application::Render(GLFWwindow* window){
             glm::vec3(1.0f, 1.0f, 1.0f)
         );
 
+        // Making outline color highlighted to make sure it is selected 
+        if(recentSelectedBody && isRecentBodySelected){
+           static float offSet = 1.0f; 
+           Renderer::DrawCircle(recentSelectedBody->position, recentSelectedBody->GetRadius() - offSet, glm::vec4(1.0f, 1.0f, 0.0f, 0.5f));
         }
+        
+    }
         if (body->shape->GetType() == CIRCLE) {
             body->isColliding = false;
          }
@@ -204,6 +215,13 @@ void Application::Render(GLFWwindow* window){
         BoxShape* boxShape = static_cast<BoxShape*>(body->shape); 
         Renderer::DrawRectangle(body->position, boxShape->width, boxShape->height, glm::vec3 (0.5f, 1.0f, 0.5f), body->rotation); 
         //Renderer::DrawRect(body->position.x, body->position.y, boxShape->width, boxShape->height, color);  
+
+        // Making outline color highlighted to make sure it is selected 
+        if(recentSelectedBody && isRecentBodySelected){
+        BoxShape* _boxShape = static_cast<BoxShape*>(recentSelectedBody->shape); 
+           static float offSet = 1.0f; 
+           Renderer::DrawRectangle(recentSelectedBody->position, _boxShape->width - offSet, _boxShape->height - offSet, glm::vec4 (1.0f, 1.0f, 0.5f, 0.1f), recentSelectedBody->rotation); 
+        }
     }
 
        if (body->shape->GetType() == BOX) {
@@ -222,56 +240,91 @@ void Application::Render(GLFWwindow* window){
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
+Body* Application::SelectCircleInCanvas(double &x, double &y, Body* clickedBody){
+            for (auto body : bodies) {
+                     if (body->shape->GetType() == CIRCLE) {
+                             CircleShape* circleShape = (CircleShape*) body->shape;
+                                if (Renderer::IsPointInCircle(x, y, body->position.x, body->position.y, circleShape->radius)) {
+                                    clickedBody = body;
+                                    return clickedBody; 
+                                }
+                            } else if (body->shape->GetType() == BOX) {
+                                BoxShape* boxShape = (BoxShape*) body->shape;
+                                if (Renderer::IsPointInBox(x, y, body, boxShape)) {
+                                    clickedBody = body;
+                                    return clickedBody; 
+                                }
+                          }
+                          isRecentBodySelected = false; 
+                   } 
+          return nullptr; 
+}
+
 void Application::MouseButtonCallBack(GLFWwindow* window, int button, int action, int mods) {
     double x, y;
     glfwGetCursorPos(window, &x, &y);
 
     switch (action) {
-    case GLFW_PRESS:
-        switch (button) {
-        case GLFW_MOUSE_BUTTON_RIGHT:
-            if (mods & GLFW_MOD_SHIFT) {
-                // Shift + Right Click -> Create a box
-                otherBox = new Body(BoxShape(60.f , 60.f), x, y, 1.f, 0.f);
-                bodies.push_back(otherBox);
-            } else {
-                // Just Right Click -> Create a circle
-                smallBall = new Body(CircleShape(35), x, y, 1.f, 0.f);
-                bodies.push_back(smallBall);
-            }
+        case GLFW_PRESS:
+            switch (button) {
+                case GLFW_MOUSE_BUTTON_RIGHT:
+                    if (mods & GLFW_MOD_SHIFT) {
+                        // Shift + Right Click -> Create a box
+                        otherBox = new Body(BoxShape(60.f, 60.f), x, y, 1.f, 0.f);
+                        bodies.push_back(otherBox);
+                    } else {
+                        // Just Right Click -> Create a circle
+                        smallBall = new Body(CircleShape(35), x, y, 1.f, 0.f);
+                        bodies.push_back(smallBall);
+                    }
+                    break;
 
-            break;
+                case GLFW_MOUSE_BUTTON_LEFT: {
+                    if (mods & GLFW_MOD_SHIFT) {
+                        // Shift + Left Click -> Create polygon
+                        otherPolygon = new Body(PolygonShape(RandomNumber(3, 6), 40.f), x, y, 1.f, 0.f);
+                        bodies.push_back(otherPolygon);
+                    } else {
+                        Body* clickedBody = SelectCircleInCanvas(x, y, clickedBody); 
 
-        case GLFW_MOUSE_BUTTON_LEFT:
-            // Check for dragging the circle
-             if (mods & GLFW_MOD_SHIFT) {
-                // Shift + left Click -> box
-                otherPolygon =  otherBox = new Body(PolygonShape(RandomNumber(3, 6), 40.f), x, y, 1.f, 0.f);
-                bodies.push_back(otherPolygon); 
-             }
+                        // Set appropriate dragging state
+                        if (clickedBody) {
+                            if (clickedBody == greatBall) {
+                                isDragging = true;
+                                draggedBody = greatBall;
+                                recentSelectedBody = greatBall; 
+                                isRecentBodySelected = true; 
+                            }
+                            else {
+                                isDragging = true;
+                                draggedBody = clickedBody;
+                                recentSelectedBody = clickedBody; 
+                                isRecentBodySelected = true; 
+                            }
 
-            else if (greatBall && Renderer::IsPointInCircle(x, y, greatBall->position.x, greatBall->position.y, greatBall->GetRadius())) {
-                isDragging = true;
-            }
+                            dragOffset.x = x - clickedBody->position.x;
+                            dragOffset.y = y - clickedBody->position.y;
+                        }
 
-            // Check for dragging the box
-            if (bigBox && bigBox->shape->GetType() == BOX) {
-                BoxShape* boxShape = static_cast<BoxShape*>(bigBox->shape);
-                if (isPointInBox(static_cast<int>(x), static_cast<int>(y), bigBox, boxShape)) {
-                    isDragging = true;
+                    }
+                    break;
+                }
+
+                case GLFW_MOUSE_BUTTON_MIDDLE: {
+                    // Middle click -> create a large box
+                    Body* box = new Body(BoxShape(100, 100), x, y, 1.0, 0.f);
+                    bodies.push_back(box);
+                    break;
                 }
             }
             break;
-        }
-        break;
 
-    case GLFW_RELEASE:
-        switch (button) {
-        case GLFW_MOUSE_BUTTON_LEFT:
-            isDragging = false;
+        case GLFW_RELEASE:
+            if (button == GLFW_MOUSE_BUTTON_LEFT) {
+                isDragging = false;
+                draggedBody = nullptr;
+            }
             break;
-        }
-        break;
     }
 }
 
@@ -298,7 +351,7 @@ void Application::RenderGUI(GLFWwindow* window) {
     ImGui::SetNextWindowPos(ImVec2(panel_x, 0), ImGuiCond_Always);
     ImGui::SetNextWindowSize(ImVec2(panel_width, screen_height), ImGuiCond_Always);
     ImGui::Begin("RigidBody Properties", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove);
-     ImGui::Text("Note: Press 'H' to toggle the side menu");
+    ImGui::SeparatorText("Note: Press 'H' to toggle the side menu"); 
 
     if (ImGui::SliderFloat("Circle Radius", &radius_, 10.0f, 200.0f)) {
         greatBall->SetRadius(radius_);
@@ -307,8 +360,8 @@ void Application::RenderGUI(GLFWwindow* window) {
     ImGui::SliderFloat("Gravity", &gravity, -10.0f, 10.0f);
     ImGui::SliderFloat("Friction", &frictionValue, 0.0f, 1.0f);
 
-    if (ImGui::Button("Clear Scene")) {
-        bool success = ClearScreen();
+    if (ImGui::Button("Clear Dynamic Bodies")) {
+        bool success = ClearDynamicObjectOnScreen();
         if (success) {
             ImGui::Text("Scene cleared successfully!");
         } else {
@@ -334,54 +387,61 @@ void Application::RenderGUI(GLFWwindow* window) {
     if (ImGui::SliderFloat("Correction", &correctionValue, 0.0f, 1.0f)) {
         CollisionSolver::SetCorrectionValue(correctionValue);
     }
-
+        ImGui::NewLine(); 
         ImGui::BeginChild("Canvas", ImVec2(400, 600), true);
         ImDrawList* canvas = ImGui::GetWindowDrawList();
         ImVec2 canvasPos = ImGui::GetCursorScreenPos();
 
         // Box Icon
         canvas->AddRect(
-        ImVec2(canvasPos.x, canvasPos.y),                            // Top-left
-        ImVec2(canvasPos.x + 30, canvasPos.y + 30),                  // Bottom-right
-        IM_COL32(255, 255, 0, 255),                                  // Yellow outline
-        0.0f,                                                        // No corner rounding
+        ImVec2(canvasPos.x, canvasPos.y), // Top-left
+        ImVec2(canvasPos.x + 30, canvasPos.y + 30), // Bottom-right
+        IM_COL32(255, 255, 0, 255), // Yellow outline
+        0.0f, // No corner rounding
         ImDrawFlags_None,
-        2.0f                                                         // Thickness
+        2.0f // Thickness
         );
 
         ImGui::Dummy(ImVec2(30, 30));
         ImGui::SameLine();
-        ImGui::Text("Add Box");
         
         static float addBoxWidth = 60.f; 
         static float addBoxHeight = 60.f; 
         static float rotation = 0.f; 
-        static float isNonStatic = 1; 
-
-        bool checked = (isNonStatic != 1); 
-
-        ImGui::Text("Box Size:");
-        ImGui::InputFloat("Width", &addBoxWidth, 1.0f, 10.0f, "%.1f");
-        ImGui::InputFloat("Height", &addBoxHeight, 1.0f, 10.0f, "%.1f");
-
-        // === Create Button ===
-        if (ImGui::Button("Create")) {
-            Body* addBox = new Body(BoxShape(addBoxWidth , addBoxHeight), 500.f, 700.f, isNonStatic, rotation);
-            bodies.push_back(addBox);
+        ImGui::SameLine(); 
+        if (ImGui::Button("Add Box")) {
+            Body* addBox = new Body(BoxShape(addBoxWidth , addBoxHeight), 500.f, 700.f, 0.f, rotation);
+            recentSelectedBody = addBox; 
+            bodies.push_back(recentSelectedBody);
         }
 
-        ImGui::SameLine();
-        if(ImGui::Checkbox("Static", &checked)){
-            isNonStatic = checked ? 0 : 1; 
+        ImGui::SameLine(); 
+        if (ImGui::Button("Delete Body")) {
+        bool success = DeleteParticularBody(recentSelectedBody);
+        if (success) {
+            ImGui::Text("Deleted successfully");
+        } else {
+            ImGui::Text("Failed to delete.");
         }
-        ImGui::SliderFloat("Rotation", &rotation, -360.f, 360.0f);
+    }
 
+        if(recentSelectedBody){
+             ImGui::Text("Box Rotation:");
+              if(ImGui::SliderAngle("Rotation", &rotation, -90.0f, 90.0f)){
+                  recentSelectedBody->rotation = rotation; 
+            }
+       
+            BoxShape* boxShape = static_cast<BoxShape*> (recentSelectedBody->shape); 
+            ImGui::Text("Box Size:");
+            ImGui::InputFloat("Width", &boxShape->width, 1.0f, 10.0f, "%.1f");
+            ImGui::InputFloat("Height", &boxShape->height, 1.0f, 10.0f, "%.1f");
 
+        }
         ImGui::EndChild();
 
     ImGui::End();
 
-    // Optional: toggle the panel with a key or button
+    // toggle the panel with a key or button
     if (ImGui::IsKeyPressed(ImGuiKey_H)) {
         show_panel = !show_panel;
     }
@@ -409,30 +469,6 @@ void Application::Destroy () {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
-}
-
-bool Application::isPointInCircle(int pointX, int pointY, int circleX, int circleY, int radius) {
-    // Calculate the squared distance between the point and the circle center
-    int deltaX = pointX - circleX;
-    int deltaY = pointY - circleY;
-    int distanceSquared = deltaX * deltaX + deltaY * deltaY;
-    
-    // Return true if the mouse is inside the circle (distance <= radius)
-    return distanceSquared <= (radius * radius);
-}
-
-// Function to check if point is inside a box (rectangle)
-bool Application::isPointInBox(int pointX, int pointY, Body* body, BoxShape* boxShape) {
-    // Simple AABB (Axis-Aligned Bounding Box) check
-    // This assumes the box is not rotated significantly
-    std::cout<<"running"<<"\n"; 
-    float halfWidth = boxShape->width / 2.0f;
-    float halfHeight = boxShape->height / 2.0f;
-    
-    return (pointX >= body->position.x - halfWidth && 
-            pointX <= body->position.x + halfWidth &&
-            pointY >= body->position.y - halfHeight && 
-            pointY <= body->position.y + halfHeight);
 }
 
 int Application::RandomNumber(int start, int end){
@@ -465,17 +501,32 @@ void Application::ClearOffScreenBodies(GLFWwindow* window) {
     } 
 }
 
-bool Application::ClearScreen() {
-    
+bool Application::ClearDynamicObjectOnScreen() {
     auto it = std::remove_if(bodies.begin(), bodies.end(), [](Body* body) {
-        if (!body) return false; 
+        if (!body) return false;
+
         if (!body->IsStatic()) {
-            delete body;        
-            return true;         
+            delete body;
+            return true;  // Remove from vector
         }
-        return false;          
+
+        return false; // Keep static body 
     });
 
     bodies.erase(it, bodies.end());
     return true;
+}
+
+bool Application::DeleteParticularBody(Body* body) {
+   if(!body)
+        return false;
+
+    auto it = std::find(bodies.begin(), bodies.end(), body);
+    if (it != bodies.end()) {
+        delete *it;              
+        bodies.erase(it);        
+        recentSelectedBody = nullptr;
+        return true;
+    }
+    return false; 
 }

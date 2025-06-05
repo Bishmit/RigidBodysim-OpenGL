@@ -14,8 +14,7 @@ void CollisionSolver::ResolveOverlap(ContactInformation &contact){
     float positionCorrectionA =  (contact.depth * contact.a->invMass) / totalInverseMass; 
     float positionCorrectionB =  (contact.depth * contact.b->invMass) / totalInverseMass; 
 
-    SetCorrectionValue(correctionFactor); 
-    std::cout<<"correctionFactor "<<correctionFactor<<"\n"; 
+    SetCorrectionValue(correctionFactor);  
     float _correctionFactor = (aIsCircle && bIsCircle) ? 1.f : correctionFactor;
     contact.a->position -= contact.normal * positionCorrectionA * _correctionFactor; 
     contact.b->position += contact.normal * positionCorrectionB * _correctionFactor;  

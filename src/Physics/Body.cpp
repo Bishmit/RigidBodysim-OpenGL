@@ -111,17 +111,7 @@ void Body::SetRadius(float &r){
     }
 }
 
-void Body::setSize(float w, float h) {
-    BoxShape* boxShape = static_cast<BoxShape*> (shape); 
-    boxShape->width = w; 
-    boxShape->height = h;  
-}
 
-void Body::setRotation(float rot) {
-    rot = rotation; 
+void Body::SetStatic(bool value) {
+    invMass = value ? 0.0f : 1.0f; 
 }
-
-// void Body::setStatic(bool isStatic){
-//     bool _isStatic = IsStatic(); 
-//     isStatic =  _isStatic; 
-// }

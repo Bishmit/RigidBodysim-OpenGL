@@ -210,6 +210,8 @@ void Renderer::DrawRect(int x, int y, int width, int height, glm::vec3 color) {
 }
 
 
+/*======================================== HELPER FUNCTION UTILS ============================================*/
+
 bool Renderer::IsPointInCircle(int pointX, int pointY, int circleX, int circleY, int radius) {
     // Calculate the squared distance between the point and the circle center
     int deltaX = pointX - circleX;
@@ -218,6 +220,17 @@ bool Renderer::IsPointInCircle(int pointX, int pointY, int circleX, int circleY,
     
     // Return true if the mouse is inside the circle (distance <= radius)
     return distanceSquared <= (radius * radius);
+}
+
+bool Renderer::IsPointInBox(int pointX, int pointY, Body* body, BoxShape* boxShape) {
+    // Simple AABB check, assumes the box is not rotated significantly
+    float halfWidth = boxShape->width / 2.0f;
+    float halfHeight = boxShape->height / 2.0f;
+    
+    return (pointX >= body->position.x - halfWidth && 
+            pointX <= body->position.x + halfWidth &&
+            pointY >= body->position.y - halfHeight && 
+            pointY <= body->position.y + halfHeight);
 }
 
 Monitors Renderer::GetMonitor(GLFWwindow* window){
