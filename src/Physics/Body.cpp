@@ -104,6 +104,16 @@ float Body::GetRadius(){
     return 0.0f; 
 }
 
+void Body::SetWidth(float width){
+    BoxShape* boxShape = static_cast<BoxShape*>(shape); 
+    boxShape->width = width;  
+}
+
+void Body::SetHeight(float height){
+    BoxShape* boxShape = static_cast<BoxShape*>(shape); 
+    boxShape->height = height; 
+}
+
 void Body::SetRadius(float &r){
     CircleShape* circle = static_cast<CircleShape*>(shape);
     if(circle){

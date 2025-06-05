@@ -55,4 +55,6 @@ struct Body {
   void IntegrateVelocities(const float dt);
 
   void SetStatic(bool value);
+  void SetWidth(float width);
+  void SetHeight(float height); 
 };

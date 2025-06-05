@@ -405,8 +405,8 @@ void Application::RenderGUI(GLFWwindow* window) {
         ImGui::Dummy(ImVec2(30, 30));
         ImGui::SameLine();
         
-        static float addBoxWidth = 60.f; 
-        static float addBoxHeight = 60.f; 
+        static float addBoxWidth = 900.f; 
+        static float addBoxHeight = 20.f; 
         static float rotation = 0.f; 
         ImGui::SameLine(); 
         if (ImGui::Button("Add Box")) {
