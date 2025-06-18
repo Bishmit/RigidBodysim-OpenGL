@@ -56,5 +56,6 @@ struct Body {
 
   void SetStatic(bool value);
   void SetWidth(float width);
-  void SetHeight(float height); 
+  void SetHeight(float height);
+  void UpdateShapeData();
 };

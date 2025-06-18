@@ -405,12 +405,12 @@ void Application::RenderGUI(GLFWwindow* window) {
         ImGui::Dummy(ImVec2(30, 30));
         ImGui::SameLine();
         
-        static float addBoxWidth = 900.f; 
-        static float addBoxHeight = 20.f; 
+        float addBoxWidth = 100.f; 
+        float addBoxHeight = 20.f; 
         static float rotation = 0.f; 
         ImGui::SameLine(); 
         if (ImGui::Button("Add Box")) {
-            Body* addBox = new Body(BoxShape(addBoxWidth , addBoxHeight), 500.f, 700.f, 0.f, rotation);
+            Body* addBox = new Body(BoxShape(addBoxWidth , addBoxHeight), 200.f, 200.f, 0.f, rotation);
             recentSelectedBody = addBox; 
             bodies.push_back(recentSelectedBody);
         }
@@ -432,10 +432,16 @@ void Application::RenderGUI(GLFWwindow* window) {
             }
        
             BoxShape* boxShape = static_cast<BoxShape*> (recentSelectedBody->shape); 
-            ImGui::Text("Box Size:");
-            ImGui::InputFloat("Width", &boxShape->width, 1.0f, 10.0f, "%.1f");
-            ImGui::InputFloat("Height", &boxShape->height, 1.0f, 10.0f, "%.1f");
-
+            ImGui::Text("Box Size:");  
+            if(ImGui::InputFloat("Width", &addBoxWidth, 1.0f, 10.0f, "%.1f")){
+                recentSelectedBody->SetWidth(addBoxWidth); 
+                recentSelectedBody->UpdateShapeData(); 
+            }
+             if(ImGui::InputFloat("Height", &addBoxHeight, 1.0f, 10.0f, "%.1f")){
+                recentSelectedBody->SetHeight(addBoxHeight); 
+                recentSelectedBody->UpdateShapeData(); 
+            }
+           
         }
         ImGui::EndChild();
 
@@ -522,7 +528,7 @@ bool Application::DeleteParticularBody(Body* body) {
         return false;
 
     auto it = std::find(bodies.begin(), bodies.end(), body);
-    if (it != bodies.end()) {
+    if (it != bodies.end() - 1) {
         delete *it;              
         bodies.erase(it);        
         recentSelectedBody = nullptr;

@@ -145,20 +145,24 @@ float PolygonShape::Moi::CalculatePolygonMomentOfInertia(const std::vector<Vec2>
     return (mass / 6.0f) * (numerator / denominator);
 }
 
-
 BoxShape::BoxShape(float width, float height) {
     this->width = width; 
     this->height = height; 
-    
-    localVertices.push_back(Vec2(-width/2.0, -height/2.0));
-    localVertices.push_back(Vec2(width/2.0, -height/2.0));  
-    localVertices.push_back(Vec2(width/2.0, height/2.0));
-    localVertices.push_back(Vec2(-width/2.0, height/2.0));
-    
-    worldVertices.push_back(Vec2(-width/2.0, -height/2.0));
-    worldVertices.push_back(Vec2(width/2.0, -height/2.0));  
-    worldVertices.push_back(Vec2(width/2.0, height/2.0));
-    worldVertices.push_back(Vec2(-width/2.0, height/2.0));  
+
+    localVertices = GenerateBoxVertices(width, height); 
+    worldVertices = GenerateBoxVertices(width, height); 
+}
+
+std::vector<Vec2> BoxShape::GenerateBoxVertices(float width, float height) const{
+    float halfWidth = width * 0.5f;
+    float halfHeight = height * 0.5f;
+
+    return {
+        Vec2(-halfWidth, -halfHeight), // Bottom-left
+        Vec2( halfWidth, -halfHeight), // Bottom-right
+        Vec2( halfWidth,  halfHeight), // Top-right
+        Vec2(-halfWidth,  halfHeight)  // Top-left
+    };
 }
 
 BoxShape::~BoxShape() {

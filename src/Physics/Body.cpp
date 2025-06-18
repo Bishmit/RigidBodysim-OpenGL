@@ -114,13 +114,19 @@ void Body::SetHeight(float height){
     boxShape->height = height; 
 }
 
+void Body::UpdateShapeData() {
+    BoxShape* boxShape = static_cast<BoxShape*>(shape);
+
+    boxShape->localVertices = boxShape->GenerateBoxVertices(boxShape->width, boxShape->height); 
+    boxShape->worldVertices = boxShape->GenerateBoxVertices(boxShape->width, boxShape->height); 
+}
+
 void Body::SetRadius(float &r){
     CircleShape* circle = static_cast<CircleShape*>(shape);
     if(circle){
         circle->radius = r; 
     }
 }
-
 
 void Body::SetStatic(bool value) {
     invMass = value ? 0.0f : 1.0f; 
