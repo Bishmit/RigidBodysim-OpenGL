@@ -36,7 +36,6 @@ void Application::Init(GLFWwindow* window) {
         std::cerr << "Failed to initialize GLAD\n";
         return;
     }
-
     glViewport(0, 0, screenWidth, screenHeight);
     
     // Initialize the renderer
@@ -352,6 +351,15 @@ void Application::RenderGUI(GLFWwindow* window) {
     ImGui::SetNextWindowSize(ImVec2(panel_width, screen_height), ImGuiCond_Always);
     ImGui::Begin("RigidBody Properties", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove);
     ImGui::SeparatorText("Note: Press 'H' to toggle the side menu"); 
+
+    std::stringstream ss;
+    ss << "Total Bodies: " << bodies.size();
+    ImGui::Text("%s", ss.str().c_str());
+
+    ImGui::SameLine(0, 15.f); 
+    
+    ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+
 
     if (ImGui::SliderFloat("Circle Radius", &radius_, 10.0f, 200.0f)) {
         greatBall->SetRadius(radius_);
