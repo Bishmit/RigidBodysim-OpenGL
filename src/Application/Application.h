@@ -19,11 +19,14 @@
 #include "Physics/ContactInformation.h"
 #include "Physics/CollisionSolver.h"
 #include "Physics/Constants.h"
+#include "Physics/WreckingBall/WreckingBall.h"
 
 #include "Renderer.h"
+//#include "Pendulum.h"
+
 
 class Application {
-public:
+    public:
     // Core application methods
     static void Init(GLFWwindow* window);
     static void SetUp();
@@ -43,6 +46,8 @@ public:
     // Callback functions
     static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
     static void MouseButtonCallBack(GLFWwindow* window, int button, int action, int mods);
+
+    static Body* getGreatBall(); 
     private:
     static int RandomNumber(int start, int end); 
  
@@ -82,6 +87,9 @@ public:
     static Body* recentSelectedBody; 
     static Vec2 dragOffset;
     
-    static ContactInformation contact; 
+    static ContactInformation contact;
+    static WreckingBall wb; 
+
+    //static Pendulum* pendulum; 
     
 };

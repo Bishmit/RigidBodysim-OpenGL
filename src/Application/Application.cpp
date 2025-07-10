@@ -29,7 +29,9 @@ bool Application::isRecentBodySelected = false;
 Body* Application::draggedBody = nullptr;
 Body* Application::recentSelectedBody = nullptr;
 Vec2 Application::dragOffset; 
-ContactInformation Application::contact; 
+ContactInformation Application::contact;
+WreckingBall Application::wb; 
+//Pendulum* Application::pendulum = nullptr; 
 
 void Application::Init(GLFWwindow* window) {
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
@@ -63,6 +65,10 @@ void Application::SetUp() {
     bodies.push_back(floor1); 
     Body* floor2 = new Body(BoxShape(800.f , 20.f), 1200.f, 750.f, 0.f, glm::radians(-15.f)); 
     bodies.push_back(floor2); 
+}
+
+Body* Application::getGreatBall(){
+    return greatBall; 
 }
 
 void Application::Update(GLFWwindow* window) {
@@ -227,7 +233,18 @@ void Application::Render(GLFWwindow* window){
             body->isColliding = false;
          }
     }
-    
+
+    // position of the hinge of pendulum
+    static Vec2 origin = {700.f, 50.f};
+
+    for (auto body : bodies) {
+        if (body->shape->GetType() == CIRCLE && body->IsStatic()) {
+            auto bobPos = wb.SolvePendulum(body->gravity, origin, body->position, deltaTime);
+            body->position = bobPos; 
+            Renderer::DrawLine(origin, body->position, glm::vec4(1.0f, 1.0f, 0.5f, 1.0f));
+        }
+    }
+
     // Render ImGui
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
