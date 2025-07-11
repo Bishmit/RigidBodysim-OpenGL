@@ -196,7 +196,7 @@ void Application::Render(GLFWwindow* window){
         );
 
         // Making outline color highlighted to make sure it is selected 
-        if(recentSelectedBody && isRecentBodySelected){
+        if(recentSelectedBody && !recentSelectedBody->IsStatic() &&isRecentBodySelected){
            static float offSet = 1.0f; 
            Renderer::DrawCircle(recentSelectedBody->position, recentSelectedBody->GetRadius() - offSet, glm::vec4(1.0f, 1.0f, 0.0f, 0.5f));
         }
@@ -236,13 +236,14 @@ void Application::Render(GLFWwindow* window){
 
     // position of the hinge of pendulum
     static Vec2 origin = {700.f, 50.f};
-
+   
     for (auto body : bodies) {
         if (body->shape->GetType() == CIRCLE && body->IsStatic()) {
-            auto bobPos = wb.SolvePendulum(body->gravity, origin, body->position, deltaTime);
-            body->position = bobPos; 
             Renderer::DrawLine(origin, body->position, glm::vec4(1.0f, 1.0f, 0.5f, 1.0f));
+            auto bobPos = wb.SolvePendulum(body->gravity, origin, body->position, deltaTime, isRecentBodySelected);
+            body->position = bobPos; 
         }
+        break; 
     }
 
     // Render ImGui
@@ -262,9 +263,11 @@ Body* Application::SelectCircleInCanvas(double &x, double &y, Body* clickedBody)
                              CircleShape* circleShape = (CircleShape*) body->shape;
                                 if (Renderer::IsPointInCircle(x, y, body->position.x, body->position.y, circleShape->radius)) {
                                     clickedBody = body;
+                                    // isBobSelected = true;
                                     return clickedBody; 
                                 }
-                            } else if (body->shape->GetType() == BOX) {
+                            }
+                             else if (body->shape->GetType() == BOX) {
                                 BoxShape* boxShape = (BoxShape*) body->shape;
                                 if (Renderer::IsPointInBox(x, y, body, boxShape)) {
                                     clickedBody = body;

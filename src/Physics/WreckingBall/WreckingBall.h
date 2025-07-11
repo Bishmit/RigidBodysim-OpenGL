@@ -11,16 +11,19 @@ struct WreckingBall {
     float angleAcceleration = 0.f;
     float speedMultiplier = 15.0f; 
 
-    Vec2 SolvePendulum(float gravity, Vec2 origin, Vec2 bobPos, float deltatime) {
+    Vec2 SolvePendulum(float gravity, Vec2 origin, Vec2 bobPos, float deltatime, bool isBobSelected) {
         float dx = bobPos.x - origin.x;
         float dy = bobPos.y - origin.y;
         float currentLength = glm::sqrt(dx * dx + dy * dy);
         
         // updating angle from current position only if length changed significantly
-        if (abs(currentLength - length) > 0.1f) {
+        if (abs(currentLength - length) > 0.0001f) {
             length = currentLength;
             angle = atan2(dx, dy);
+            
         }
+
+        if(!isBobSelected){
         float adjustedDeltaTime = deltatime * speedMultiplier;
 
         float force = mass * gravity * sin(angle);
@@ -32,8 +35,10 @@ struct WreckingBall {
         bobPos.y = length * cos(angle) + origin.y;
 
         angleVelocity *= 0.99f; // damping
-
         return bobPos;
+        }
+        isBobSelected = true; 
+        return bobPos; 
     }
 };
 
