@@ -12,6 +12,7 @@ float Application::gravity = 9.81f;
 float Application::deltaTime = 0.f; 
 bool Application::pause = false; 
 bool Application::showNormal = false;
+bool Application::attachPendulum = false; 
 bool Application::showCollisionPoint = false;
 int Application::maxIteration = 3; 
 float Application::correctionValue = 0.85f; 
@@ -31,7 +32,6 @@ Body* Application::recentSelectedBody = nullptr;
 Vec2 Application::dragOffset; 
 ContactInformation Application::contact;
 WreckingBall Application::wb; 
-//Pendulum* Application::pendulum = nullptr; 
 
 void Application::Init(GLFWwindow* window) {
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
@@ -236,7 +236,9 @@ void Application::Render(GLFWwindow* window){
 
     // position of the hinge of pendulum
     static Vec2 origin = {700.f, 50.f};
-   
+    
+    if(attachPendulum)
+    {
     for (auto body : bodies) {
         if (body->shape->GetType() == CIRCLE && body->IsStatic()) {
             Renderer::DrawLine(origin, body->position, glm::vec4(1.0f, 1.0f, 0.5f, 1.0f));
@@ -245,6 +247,7 @@ void Application::Render(GLFWwindow* window){
         }
         break; 
     }
+  }
 
     // Render ImGui
     ImGui_ImplOpenGL3_NewFrame();
@@ -380,7 +383,9 @@ void Application::RenderGUI(GLFWwindow* window) {
     
     ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 
-
+    if(ImGui::Button(attachPendulum ? "Detach Pendulum" : "Attach Pendulum")){
+        attachPendulum = !attachPendulum; 
+    }
     if (ImGui::SliderFloat("Circle Radius", &radius_, 10.0f, 200.0f)) {
         greatBall->SetRadius(radius_);
     }

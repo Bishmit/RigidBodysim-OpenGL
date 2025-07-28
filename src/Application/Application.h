@@ -82,7 +82,8 @@ class Application {
     // Interaction state
     static bool isDragging;
     static bool isRecentBodySelected; 
-    static Body* greatBall; 
+    static bool attachPendulum; 
+    static Body* greatBall;
     static Body* draggedBody;
     static Body* recentSelectedBody; 
     static Vec2 dragOffset;
