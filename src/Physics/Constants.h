@@ -6,4 +6,6 @@ namespace Constants{
     const int MILLISECS_PER_FRAME = 1000 / FPS;
     
     const int PIXELS_PER_METER = 50;
+    constexpr double M_PI = 3.14159265358979323846;
+
 }

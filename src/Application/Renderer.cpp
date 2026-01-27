@@ -1,5 +1,8 @@
 #include "Renderer.h"
 
+#define _USE_MATH_DEFINES
+#include <cmath>
+
 // === Static Members Initialization for Rendering ===
 glm::mat4 Renderer::projection;
 glm::vec3 Renderer::color = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -36,7 +39,7 @@ void main() {
 std::vector<float> Renderer::generateCircleOutline(int segments) {
     std::vector<float> vertices;
     for (int i = 0; i < segments; ++i) {
-        float theta = 2.0f * M_PI * i / segments;
+        float theta = 2.0f * Constants::M_PI * i / segments;
         vertices.push_back(std::cos(theta));
         vertices.push_back(std::sin(theta));
     }
