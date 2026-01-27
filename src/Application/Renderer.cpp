@@ -39,7 +39,7 @@ void main() {
 std::vector<float> Renderer::generateCircleOutline(int segments) {
     std::vector<float> vertices;
     for (int i = 0; i < segments; ++i) {
-        float theta = 2.0f * Constants::M_PI * i / segments;
+        float theta = 2.0f * Constants::PI * i / segments;
         vertices.push_back(std::cos(theta));
         vertices.push_back(std::sin(theta));
     }
