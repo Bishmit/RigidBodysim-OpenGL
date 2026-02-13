@@ -3,6 +3,7 @@
 #include <iostream>
 #include <limits>
 
+
 float PolygonShape::Moi::density = 1.0f;
 
 CircleShape::CircleShape(float radius):radius(radius){}
@@ -29,7 +30,7 @@ float CircleShape::GetMomentOfInertia() const {
 PolygonShape::PolygonShape(int sides, float radius):sides(sides), radius(radius){
   
     for (int i = 0; i < sides; i++) {
-        float angle = (2.0f * M_PI * i) / sides;
+        float angle = (2.0f * Constants::PI * i) / sides;
         localVertices.push_back(Vec2(radius * cos(angle), radius * sin(angle)));
         worldVertices.push_back(Vec2(radius * cos(angle), radius * sin(angle)));
     }

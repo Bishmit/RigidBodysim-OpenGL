@@ -264,7 +264,7 @@ Body* Application::SelectCircleInCanvas(double &x, double &y, Body* clickedBody)
             for (auto body : bodies) {
                      if (body->shape->GetType() == CIRCLE) {
                              CircleShape* circleShape = (CircleShape*) body->shape;
-                                if (Renderer::IsPointInCircle(x, y, body->position.x, body->position.y, circleShape->radius)) {
+                                if (Utils::IsPointInCircle(x, y, body->position.x, body->position.y, circleShape->radius)) {
                                     clickedBody = body;
                                     // isBobSelected = true;
                                     return clickedBody; 
@@ -272,7 +272,7 @@ Body* Application::SelectCircleInCanvas(double &x, double &y, Body* clickedBody)
                             }
                              else if (body->shape->GetType() == BOX) {
                                 BoxShape* boxShape = (BoxShape*) body->shape;
-                                if (Renderer::IsPointInBox(x, y, body, boxShape)) {
+                                if (Utils::IsPointInBox(x, y, body, boxShape)) {
                                     clickedBody = body;
                                     return clickedBody; 
                                 }
@@ -523,8 +523,8 @@ int Application::RandomNumber(int start, int end){
 }
 
 void Application::ClearOffScreenBodies(GLFWwindow* window) {
-    Renderer r; 
-    auto monitor = r.GetMonitor(window);  
+  /*  Renderer r; */
+    auto monitor = Utils::GetMonitor(window);  
     
     auto it = std::remove_if(bodies.begin(), bodies.end(),
         [monitor](Body* body) {

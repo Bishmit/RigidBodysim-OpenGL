@@ -69,8 +69,36 @@ export GLFW_DIR=$(brew --prefix glfw)
 **Windows (Visual Studio)**
 <br>
 ```
-mkdir build && cd build
-cmake .. -G "Visual Studio 17 2022"
+
+----Install vcpkg (if not already installed)----
+
+cd C:\
+git clone https://github.com/microsoft/vcpkg.git C:/Tools/vcpkg
+cd C:/Tools/vcpkg
+.\bootstrap-vcpkg.bat
+.\vcpkg integrate install
+
+
+---Install required libraries----
+
+.\vcpkg install glfw3 glm
+
+
+---Clone your project---
+
+cd C:\
+git clone https://github.com/Bishmit/RigidBodySim-OpenGL.git
+cd RigidBodySim-OpenGL
+
+
+---Build the project---
+
+.\build.ps1
+
+
+---Run the executable---
+
+.\build\Release\main.exe
 ```
 
 **Open the generated solution in Visual Studio and build the project**

@@ -12,12 +12,7 @@
 
 #include "Math/Vec2.h"
 #include "Physics/Body.h"
-
- struct Monitors
-    {
-        int x; 
-        int y; 
-    };
+#include "Physics/Constants.h"
 
 class Renderer {
 public:
@@ -36,12 +31,6 @@ public:
     static void DrawPolygon(const std::vector<Vec2>& points, int count, glm::vec3 color);
     static void DrawLine(Vec2 p1, Vec2 p2, glm::vec3 color);
     static void DrawRect(int x, int y, int width, int height, glm::vec3 color); 
-
-    Monitors GetMonitor(GLFWwindow* window); 
-    
-    // Utility function for hit detection
-    static bool IsPointInCircle(int pointX, int pointY, int circleX, int circleY, int radius);
-    static bool IsPointInBox(int pointX, int pointY, Body* body, BoxShape* boxShape); 
 
 private:
     // Shader and buffer objects
