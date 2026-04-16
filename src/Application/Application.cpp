@@ -9,6 +9,7 @@ float Application::height = 50.0f;
 float Application::radius_ = 0.0f;
 float Application::restiutionValue = 0.65f; 
 float Application::gravity = 9.81f; 
+float Application::toastTimer = 0.0f; 
 float Application::deltaTime = 0.f; 
 bool Application::pause = false; 
 bool Application::showNormal = false;
@@ -27,11 +28,20 @@ Body* Application::otherBox = nullptr;
 Body* Application::smallBall = nullptr;
 bool Application::isDragging = false;
 bool Application::isRecentBodySelected = false; 
+bool Application::showSavedToast = false;
+bool Application::showLoadFailToast = false;
+bool Application::showOverwriteModal = false;
 Body* Application::draggedBody = nullptr;
 Body* Application::recentSelectedBody = nullptr;
 Vec2 Application::dragOffset; 
 ContactInformation Application::contact;
 WreckingBall Application::wb; 
+
+//State Save / Load 
+std::string Application::currentSceneName = "untitled";
+char        Application::stateName[128] = "state_01";
+char        Application::pendingFilepath[256] = {};
+char        Application::newSaveName[128] = {};
 
 void Application::Init(GLFWwindow* window) {
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
@@ -260,6 +270,133 @@ void Application::Render(GLFWwindow* window){
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
+void Application::SaveState(const std::string& filepath)
+{
+    
+
+    nlohmann::json j; 
+    j["globalGravity"] = gravity; 
+    j["globalRestituion"] = restiutionValue; 
+    j["globalFriction"] = frictionValue; 
+    j["pause"] = pause; 
+    j["pendulumAttached"] = attachPendulum; 
+    
+    nlohmann::json bodyArray = nlohmann::json::array(); 
+
+    for (auto* body : bodies) {
+        nlohmann::json b; 
+        // --- Transform ---
+        b["x"] = body->position.x;
+        b["y"] = body->position.y;
+        b["rotation"] = body->rotation;
+
+        // --- Motion (this is what makes it a STATE save) ---
+        b["velocityX"] = body->velocity.x;
+        b["velocityY"] = body->velocity.y;
+        b["angularVelocity"] = body->angularVelocity;
+
+        // --- Physics properties ---
+        b["mass"] = body->mass;
+        b["restitution"] = body->restitution;
+        b["friction"] = body->friction;
+        b["gravity"] = body->gravity;
+
+        // --- Shape ---
+        ShapeType type = body->shape->GetType();
+        if (type == CIRCLE) {
+            CircleShape* c = static_cast<CircleShape*>(body->shape);
+            b["shape"] = "circle";
+            b["radius"] = c->radius;
+        }
+        else if (type == BOX) {
+            BoxShape* box = static_cast<BoxShape*>(body->shape);
+            b["shape"] = "box";
+            b["width"] = box->width;
+            b["height"] = box->height;
+        }
+        else if (type == POLYGON) {
+            PolygonShape* poly = static_cast<PolygonShape*>(body->shape);
+            b["shape"] = "polygon";
+            b["numSides"] = (int)poly->localVertices.size();
+        }
+
+        bodyArray.push_back(b);
+    }
+
+    j["bodies"] = bodyArray;
+
+    // Create folder if needed
+    std::filesystem::create_directories("states");
+    std::ofstream file(filepath);
+    file << j.dump(4);
+    file.close();
+
+    std::cout << "[State] Saved " << bodies.size() << " bodies to: " << filepath << "\n"; 
+}
+
+void Application::LoadState(const std::string& filepath)
+{
+    std::ifstream file(filepath);
+    if (!file.is_open()) {
+        std::cerr << "[State] Could not open: " << filepath << "\n";
+        return;
+    }
+
+    // --- Full reset ---
+    for (auto* body : bodies) delete body;
+    bodies.clear();
+    greatBall = nullptr;
+    recentSelectedBody = nullptr;
+    isRecentBodySelected = false;
+
+    nlohmann::json j;
+    file >> j;
+    file.close();
+
+    // --- Restore global simulation state ---
+    if (j.contains("globalGravity"))     gravity = j["globalGravity"];
+    if (j.contains("globalRestitution")) restiutionValue = j["globalRestitution"];
+    if (j.contains("globalFriction"))    frictionValue = j["globalFriction"];
+    if (j.contains("paused"))            pause = j["paused"];
+    if (j.contains("pendulumAttached"))  attachPendulum = j["pendulumAttached"];
+
+    // --- Rebuild every body with full motion state ---
+    for (auto& b : j["bodies"]) {
+        float x = b["x"];
+        float y = b["y"];
+        float mass = b["mass"];
+        float rotation = b["rotation"];
+        std::string shape = b["shape"];
+
+        Body* body = nullptr;
+
+        if (shape == "circle") {
+            body = new Body(CircleShape(b["radius"].get<float>()), x, y, mass, rotation);
+        }
+        else if (shape == "box") {
+            body = new Body(BoxShape(b["width"].get<float>(), b["height"].get<float>()), x, y, mass, rotation);
+        }
+        else if (shape == "polygon") {
+            body = new Body(PolygonShape(b["numSides"].get<int>(), b["size"].get<float>()), x, y, mass, rotation);
+        }
+
+        if (body) {
+            // Restore full motion — this is what makes simulation resume correctly
+            body->velocity.x = b["velocityX"];
+            body->velocity.y = b["velocityY"];
+            body->angularVelocity = b["angularVelocity"];
+            body->restitution = b["restitution"];
+            body->friction = b["friction"];
+            body->gravity = b["gravity"];
+            body->rotation = rotation;
+
+            bodies.push_back(body);
+        }
+    }
+
+    std::cout << "[State] Loaded " << bodies.size() << " bodies from: " << filepath << "\n";
+}
+
 Body* Application::SelectCircleInCanvas(double &x, double &y, Body* clickedBody){
             for (auto body : bodies) {
                      if (body->shape->GetType() == CIRCLE) {
@@ -357,135 +494,376 @@ float Application::EaseOut(float a, float b, float t) {
 }
 
 void Application::RenderGUI(GLFWwindow* window) {
-    static bool show_panel = true; // toggle this with a key/button
+    static bool  show_panel = true;
     static float panel_x = 0.0f;
-    float panel_width = 350.0f;
-    
+    const  float panel_width = 360.0f;
+
     ImGuiIO& io = ImGui::GetIO();
-    float screen_width = io.DisplaySize.x;
-    float screen_height = io.DisplaySize.y;
-    float target_x = show_panel ? (screen_width - panel_width) : screen_width;
-    float dt = io.DeltaTime;
+    float    screen_w = io.DisplaySize.x;
+    float    screen_h = io.DisplaySize.y;
+    float    target_x = show_panel ? (screen_w - panel_width) : screen_w;
 
-    // Smooth slide animation
-     panel_x = EaseOut(panel_x, target_x, dt * 10.0f);
+    panel_x = EaseOut(panel_x, target_x, io.DeltaTime * 10.0f);
 
+    //  SIDE PANEL
+   
     ImGui::SetNextWindowPos(ImVec2(panel_x, 0), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(panel_width, screen_height), ImGuiCond_Always);
-    ImGui::Begin("RigidBody Properties", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove);
-    ImGui::SeparatorText("Note: Press 'H' to toggle the side menu"); 
+    ImGui::SetNextWindowSize(ImVec2(panel_width, screen_h), ImGuiCond_Always);
+    ImGui::SetNextWindowBgAlpha(0.92f);
 
-    std::stringstream ss;
-    ss << "Total Bodies: " << bodies.size();
-    ImGui::Text("%s", ss.str().c_str());
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12, 12));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8, 8));
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6, 4));
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.08f, 0.08f, 0.12f, 1.f));
+    ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(0.3f, 0.3f, 0.5f, 1.f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.14f, 0.14f, 0.20f, 1.f));
+    ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(0.4f, 0.6f, 1.0f, 1.f));
+    ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, ImVec4(0.6f, 0.8f, 1.0f, 1.f));
+    ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(0.4f, 0.9f, 0.4f, 1.f));
 
-    ImGui::SameLine(0, 15.f); 
-    
-    ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+    ImGui::Begin("##panel", nullptr,
+        ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags_NoCollapse |
+        ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoTitleBar);
 
-    if(ImGui::Button(attachPendulum ? "Detach Pendulum" : "Attach Pendulum")){
-        attachPendulum = !attachPendulum; 
+    // Header
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.8f, 1.0f, 1.f));
+    ImGui::SetWindowFontScale(1.1f);
+    ImGui::Text("  RigidBody Simulator");
+    ImGui::SetWindowFontScale(1.0f);
+    ImGui::PopStyleColor();
+
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.6f, 1.f));
+    ImGui::Text("  Press H to toggle panel");
+    ImGui::PopStyleColor();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    // Stats row 
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.9f, 0.6f, 1.f));
+    ImGui::Text("Bodies: %zu", bodies.size());
+    ImGui::SameLine(0, 20.f);
+    ImGui::Text("FPS: %.1f", io.Framerate);
+    ImGui::PopStyleColor();
+    ImGui::Spacing();
+
+    //  SIMULATION CONTROLS
+    ImGui::SeparatorText("Simulation");
+    ImGui::Spacing();
+
+    // Pause / Resume
+    bool isPaused = pause;
+    if (isPaused) {
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.4f, 0.0f, 1.f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.6f, 0.0f, 1.f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.4f, 0.3f, 0.0f, 1.f));
     }
-    if (ImGui::SliderFloat("Circle Radius", &radius_, 10.0f, 200.0f)) {
-        greatBall->SetRadius(radius_);
+    else {
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.4f, 0.1f, 1.f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.6f, 0.2f, 1.f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.0f, 0.3f, 0.0f, 1.f));
     }
-    ImGui::SliderFloat("Restitution", &restiutionValue, 0.0f, 1.0f);
-    ImGui::SliderFloat("Gravity", &gravity, -10.0f, 10.0f);
-    ImGui::SliderFloat("Friction", &frictionValue, 0.0f, 1.0f);
-
-    if (ImGui::Button("Clear Dynamic Bodies")) {
-        bool success = ClearDynamicObjectOnScreen();
-        if (success) {
-            ImGui::Text("Scene cleared successfully!");
-        } else {
-            ImGui::Text("Failed to clear scene.");
-        }
-    }
-
-    ImGui::SameLine(0, 15.f); 
-    if (ImGui::Button(pause ? "Resume" : "Pause")) {
+    if (ImGui::Button(isPaused ? "Resume" : "Pause", ImVec2(-1, 32)))
         pause = !pause;
-    }
+    ImGui::PopStyleColor(3);
+    ImGui::Spacing();
 
-    if (ImGui::Button(showNormal ? "Hide Normals" : "Show Normals")) {
-        showNormal = !showNormal;
-    }
-
-    ImGui::SameLine(0, 15.f);
-    if (ImGui::Button(showCollisionPoint ? "Hide Contact Point" : "Show Contact Point")) {
-        showCollisionPoint = !showCollisionPoint;
-    }
-
-    ImGui::InputInt("Max Iteration", &maxIteration, 1.f);
-    if (ImGui::SliderFloat("Correction", &correctionValue, 0.0f, 1.0f)) {
+    ImGui::SliderFloat("Gravity", &gravity, -10.f, 10.f);
+    ImGui::SliderFloat("Restitution", &restiutionValue, 0.0f, 1.f);
+    ImGui::SliderFloat("Friction", &frictionValue, 0.0f, 1.f);
+    ImGui::InputInt("Max Iterations", &maxIteration, 1);
+    if (ImGui::SliderFloat("Correction", &correctionValue, 0.0f, 1.f))
         CollisionSolver::SetCorrectionValue(correctionValue);
+
+    ImGui::Spacing();
+
+    // Normals / Contact toggles
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.18f, 0.18f, 0.28f, 1.f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.28f, 0.28f, 0.45f, 1.f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.10f, 0.10f, 0.20f, 1.f));
+    if (ImGui::Button(showNormal ? "Hide Normals" : "Show Normals", ImVec2(160, 28)))
+        showNormal = !showNormal;
+    ImGui::SameLine();
+    if (ImGui::Button(showCollisionPoint ? "Hide Contacts" : "Show Contacts", ImVec2(-1, 28)))
+        showCollisionPoint = !showCollisionPoint;
+    ImGui::PopStyleColor(3);
+
+    //  GREAT BALL
+    ImGui::Spacing();
+    ImGui::SeparatorText("Great Ball");
+    ImGui::Spacing();
+
+    if (ImGui::SliderFloat("Circle Radius", &radius_, 10.f, 200.f))
+        if (greatBall) greatBall->SetRadius(radius_);
+
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.2f, 0.5f, 1.f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.5f, 0.3f, 0.8f, 1.f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.2f, 0.1f, 0.4f, 1.f));
+    if (ImGui::Button(attachPendulum ? "Detach Pendulum" : "Attach Pendulum", ImVec2(-1, 28)))
+        attachPendulum = !attachPendulum;
+    ImGui::PopStyleColor(3);
+
+    //  BODY BUILDER
+    ImGui::Spacing();
+    ImGui::SeparatorText("Body Builder");
+    ImGui::Spacing();
+
+    static float addBoxWidth = 100.f;
+    static float addBoxHeight = 20.f;
+    static float rotation = 0.f;
+
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.15f, 0.35f, 0.55f, 1.f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.25f, 0.50f, 0.80f, 1.f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.10f, 0.25f, 0.40f, 1.f));
+    if (ImGui::Button("+ Add Box", ImVec2(120, 30))) {
+        Body* addBox = new Body(BoxShape(addBoxWidth, addBoxHeight), 200.f, 200.f, 1.f, rotation);
+        recentSelectedBody = addBox;
+        bodies.push_back(addBox);
     }
-        ImGui::NewLine(); 
-        ImGui::BeginChild("Canvas", ImVec2(400, 600), true);
-        ImDrawList* canvas = ImGui::GetWindowDrawList();
-        ImVec2 canvasPos = ImGui::GetCursorScreenPos();
+    ImGui::PopStyleColor(3);
 
-        // Box Icon
-        canvas->AddRect(
-        ImVec2(canvasPos.x, canvasPos.y), // Top-left
-        ImVec2(canvasPos.x + 30, canvasPos.y + 30), // Bottom-right
-        IM_COL32(255, 255, 0, 255), // Yellow outline
-        0.0f, // No corner rounding
-        ImDrawFlags_None,
-        2.0f // Thickness
-        );
+    ImGui::SameLine();
 
-        ImGui::Dummy(ImVec2(30, 30));
-        ImGui::SameLine();
-        
-        float addBoxWidth = 100.f; 
-        float addBoxHeight = 20.f; 
-        static float rotation = 0.f; 
-        ImGui::SameLine(); 
-        if (ImGui::Button("Add Box")) {
-            Body* addBox = new Body(BoxShape(addBoxWidth , addBoxHeight), 200.f, 200.f, 0.f, rotation);
-            recentSelectedBody = addBox; 
-            bodies.push_back(recentSelectedBody);
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.55f, 0.12f, 0.12f, 1.f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.80f, 0.20f, 0.20f, 1.f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.40f, 0.08f, 0.08f, 1.f));
+    if (ImGui::Button("Clear All", ImVec2(-1, 30)))
+        ClearDynamicObjectOnScreen();
+    ImGui::PopStyleColor(3);
+
+    ImGui::Spacing();
+
+    if (recentSelectedBody) {
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.11f, 0.11f, 0.18f, 1.f));
+        ImGui::BeginChild("##selectedBody", ImVec2(-1, 165), true);
+
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.9f, 0.6f, 1.f));
+        ImGui::Text("Selected Body");
+        ImGui::PopStyleColor();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        if (ImGui::SliderAngle("Rotation", &rotation, -90.f, 90.f))
+            recentSelectedBody->rotation = rotation;
+
+        if (ImGui::InputFloat("Width", &addBoxWidth, 1.f, 10.f, "%.1f")) {
+            recentSelectedBody->SetWidth(addBoxWidth);
+            recentSelectedBody->UpdateShapeData();
+        }
+        if (ImGui::InputFloat("Height", &addBoxHeight, 1.f, 10.f, "%.1f")) {
+            recentSelectedBody->SetHeight(addBoxHeight);
+            recentSelectedBody->UpdateShapeData();
         }
 
-        ImGui::SameLine(); 
-        if (ImGui::Button("Delete Body")) {
-        bool success = DeleteParticularBody(recentSelectedBody);
-        if (success) {
-            ImGui::Text("Deleted successfully");
-        } else {
-            ImGui::Text("Failed to delete.");
-        }
-    }
+        ImGui::Spacing();
 
-        if(recentSelectedBody){
-             ImGui::Text("Box Rotation:");
-              if(ImGui::SliderAngle("Rotation", &rotation, -90.0f, 90.0f)){
-                  recentSelectedBody->rotation = rotation; 
-            }
-       
-            BoxShape* boxShape = static_cast<BoxShape*> (recentSelectedBody->shape); 
-            ImGui::Text("Box Size:");  
-            if(ImGui::InputFloat("Width", &addBoxWidth, 1.0f, 10.0f, "%.1f")){
-                recentSelectedBody->SetWidth(addBoxWidth); 
-                recentSelectedBody->UpdateShapeData(); 
-            }
-             if(ImGui::InputFloat("Height", &addBoxHeight, 1.0f, 10.0f, "%.1f")){
-                recentSelectedBody->SetHeight(addBoxHeight); 
-                recentSelectedBody->UpdateShapeData(); 
-            }
-           
-        }
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.55f, 0.12f, 0.12f, 1.f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.80f, 0.20f, 0.20f, 1.f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.40f, 0.08f, 0.08f, 1.f));
+        if (ImGui::Button("Delete Selected", ImVec2(-1, 28)))
+            DeleteParticularBody(recentSelectedBody);
+        ImGui::PopStyleColor(3);
+
         ImGui::EndChild();
-
-    ImGui::End();
-
-    // toggle the panel with a key or button
-    if (ImGui::IsKeyPressed(ImGuiKey_H)) {
-        show_panel = !show_panel;
+        ImGui::PopStyleColor();
     }
-}
 
+    //  STATE SAVE / LOAD
+    ImGui::Spacing();
+    ImGui::SeparatorText("State Save / Load");
+    ImGui::Spacing();
+
+    // File name input
+    ImGui::SetNextItemWidth(-1);
+    ImGui::InputText("##stateName", stateName, sizeof(stateName));
+
+    ImGui::Spacing();
+    std::string filepath = std::string("states/") + stateName + ".json";
+
+    // Save button
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.10f, 0.50f, 0.15f, 1.f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.15f, 0.70f, 0.20f, 1.f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.05f, 0.35f, 0.10f, 1.f));
+    if (ImGui::Button("Save State", ImVec2(160, 34))) {
+        if (std::filesystem::exists(filepath)) {
+            showOverwriteModal = true;
+            strncpy(pendingFilepath, filepath.c_str(), sizeof(pendingFilepath));
+        }
+        else {
+            std::filesystem::create_directories("states");
+            SaveState(filepath);
+            showSavedToast = true;
+            toastTimer = 2.5f;
+        }
+    }
+    ImGui::PopStyleColor(3);
+
+    ImGui::SameLine();
+
+    // Load button
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.10f, 0.25f, 0.60f, 1.f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.15f, 0.40f, 0.90f, 1.f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.05f, 0.15f, 0.45f, 1.f));
+    if (ImGui::Button("Load State", ImVec2(-1, 34))) {
+        if (std::filesystem::exists(filepath))
+            LoadState(filepath);
+        else {
+            showLoadFailToast = true;
+            toastTimer = 2.5f;
+        }
+    }
+    ImGui::PopStyleColor(3);
+
+    ImGui::Spacing();
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.45f, 0.45f, 0.55f, 1.f));
+    ImGui::Text("Path: states/%s.json", stateName);
+    ImGui::PopStyleColor();
+
+    //  OVERWRITE MODAL  (must be inside Begin/End)
+    if (showOverwriteModal)
+        ImGui::OpenPopup("File Already Exists##modal");
+
+    ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(),
+        ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(390, 0), ImGuiCond_Always);
+    ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.10f, 0.10f, 0.16f, 1.f));
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.40f, 0.40f, 0.60f, 1.f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(16, 14));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.f);
+
+    if (ImGui::BeginPopupModal("File Already Exists##modal", nullptr,
+        ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove))
+    {
+        // Title
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.75f, 0.1f, 1.f));
+        ImGui::SetWindowFontScale(1.1f);
+        ImGui::Text("File Already Exists");
+        ImGui::SetWindowFontScale(1.0f);
+        ImGui::PopStyleColor();
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        ImGui::TextWrapped("A save file named \"%s\" already exists.", stateName);
+        ImGui::Spacing();
+        ImGui::TextWrapped("Choose to overwrite it, or save under a new name below.");
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        // Overwrite
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.65f, 0.12f, 0.10f, 1.f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.90f, 0.20f, 0.15f, 1.f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.45f, 0.08f, 0.06f, 1.f));
+        if (ImGui::Button("Overwrite", ImVec2(110, 34))) {
+            std::filesystem::create_directories("states");
+            SaveState(std::string(pendingFilepath));
+            showOverwriteModal = false;
+            showSavedToast = true;
+            toastTimer = 2.5f;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::PopStyleColor(3);
+
+        ImGui::Spacing();
+
+        // Save As row
+        ImGui::SetNextItemWidth(210.f);
+        ImGui::InputText("##newname", newSaveName, sizeof(newSaveName));
+        ImGui::SameLine();
+
+        bool nameEmpty = (newSaveName[0] == '\0');
+        if (nameEmpty) ImGui::BeginDisabled();
+
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.10f, 0.35f, 0.65f, 1.f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.20f, 0.50f, 0.90f, 1.f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.05f, 0.25f, 0.50f, 1.f));
+        if (ImGui::Button("Save As", ImVec2(-1, 34))) {
+            std::string newPath = "states/" + std::string(newSaveName) + ".json";
+            if (!std::filesystem::exists(newPath)) {
+                std::filesystem::create_directories("states");
+                SaveState(newPath);
+                strncpy(stateName, newSaveName, sizeof(stateName));
+                memset(newSaveName, 0, sizeof(newSaveName));
+                showOverwriteModal = false;
+                showSavedToast = true;
+                toastTimer = 2.5f;
+                ImGui::CloseCurrentPopup();
+            }
+            // if it also exists, just clear so user retypes
+            else memset(newSaveName, 0, sizeof(newSaveName));
+        }
+        ImGui::PopStyleColor(3);
+        if (nameEmpty) ImGui::EndDisabled();
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        // Cancel
+        float cancelW = 80.f;
+        ImGui::SetCursorPosX((390.f - cancelW) * 0.5f);
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.22f, 0.22f, 0.30f, 1.f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.35f, 0.50f, 1.f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.15f, 0.22f, 1.f));
+        if (ImGui::Button("Cancel", ImVec2(cancelW, 28))) {
+            showOverwriteModal = false;
+            memset(newSaveName, 0, sizeof(newSaveName));
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::PopStyleColor(3);
+
+        ImGui::EndPopup();
+    }
+    ImGui::PopStyleVar(2);
+    ImGui::PopStyleColor(2);
+
+    //  TOAST NOTIFICATIONS  (still inside Begin/End)
+    if (showSavedToast || showLoadFailToast) {
+        bool  isSuccess = showSavedToast;
+        float toastW = 280.f, toastH = 42.f;
+
+        ImGui::SetNextWindowPos(
+            ImVec2(screen_w * 0.5f - toastW * 0.5f, screen_h - toastH - 24.f),
+            ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(toastW, toastH), ImGuiCond_Always);
+        ImGui::SetNextWindowBgAlpha(0.88f);
+
+        ImGui::Begin("##toast", nullptr,
+            ImGuiWindowFlags_NoDecoration |
+            ImGuiWindowFlags_NoInputs |
+            ImGuiWindowFlags_NoNav |
+            ImGuiWindowFlags_NoMove);
+
+        if (isSuccess) {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.3f, 1.f, 0.45f, 1.f));
+            ImGui::Text("State saved: %s.json", stateName);
+        }
+        else {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.35f, 0.35f, 1.f));
+            ImGui::Text("File not found: %s.json", stateName);
+        }
+        ImGui::PopStyleColor();
+        ImGui::End();
+
+        toastTimer -= io.DeltaTime;
+        if (toastTimer <= 0.f) {
+            showSavedToast = false;
+            showLoadFailToast = false;
+        }
+    }
+
+    //  END PANEL
+    ImGui::End();
+    ImGui::PopStyleVar(3);
+    ImGui::PopStyleColor(6);
+
+    // H key toggle
+    if (ImGui::IsKeyPressed(ImGuiKey_H))
+        show_panel = !show_panel;
+}
 
 void Application::framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
@@ -569,3 +947,8 @@ bool Application::DeleteParticularBody(Body* body) {
     }
     return false; 
 }
+
+
+
+
+

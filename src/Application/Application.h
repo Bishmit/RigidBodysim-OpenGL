@@ -13,6 +13,8 @@
 #include <random>
 #include <algorithm>
 
+#include <fstream>
+#include <filesystem>
 #include "Physics/Body.h"
 #include "Physics/Shape.h"
 #include "Physics/CollisionDetection.h"
@@ -23,6 +25,8 @@
 
 #include "Renderer.h"
 #include "Utils.h"
+
+#include "../../utils/json.hpp"
 
 //#include "Pendulum.h"
 
@@ -35,6 +39,8 @@ class Application {
     static void Update(GLFWwindow* window);
     static float EaseOut(float a, float b, float t); 
     static void Render(GLFWwindow* window); 
+    static void SaveState(const std::string& filepath); 
+    static void LoadState(const std::string& filepath);
     static Body* SelectCircleInCanvas(double &x, double &y, Body* clickedBody); 
     static void ClearOffScreenBodies(GLFWwindow* window); 
     static bool ClearDynamicObjectOnScreen(); 
@@ -80,11 +86,15 @@ class Application {
 
     // time 
     static float deltaTime;  
+    static float toastTimer; 
 
     // Interaction state
     static bool isDragging;
     static bool isRecentBodySelected; 
     static bool attachPendulum; 
+    static bool showSavedToast; 
+    static bool showOverwriteModal;
+    static bool showLoadFailToast;
     static Body* greatBall;
     static Body* draggedBody;
     static Body* recentSelectedBody; 
@@ -93,6 +103,10 @@ class Application {
     static ContactInformation contact;
     static WreckingBall wb; 
 
-    //static Pendulum* pendulum; 
+    //State Save / Load 
+    static std::string currentSceneName;
+    static char        stateName[128];
+    static char        pendingFilepath[256];
+    static char        newSaveName[128];
     
 };
