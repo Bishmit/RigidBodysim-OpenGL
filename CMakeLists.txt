@@ -111,7 +111,7 @@ elseif(WIN32)
     # Just ensure we're linking against the right subsystem
     target_sources(RigidBodySimulation PRIVATE resource.rc)
         set_target_properties(RigidBodySimulation PROPERTIES
-            WIN32_EXECUTABLE FALSE  # Set to TRUE if you want a GUI app without console
+            WIN32_EXECUTABLE TRUE # Set to TRUE if you want a GUI app without console
         )
 endif()
 

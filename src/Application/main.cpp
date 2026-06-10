@@ -1,6 +1,29 @@
 #include "Application.h"
 
-int main() {
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+#ifdef _WIN32
+int WINAPI WinMain(
+    _In_ HINSTANCE hInstance,
+    _In_opt_ HINSTANCE hPrevInstance,
+    _In_ LPSTR lpCmdLine,
+    _In_ int nShowCmd)
+#else
+int main(int argc, char** argv)
+#endif
+{
+#ifdef _WIN32
+    (void)hInstance;
+    (void)hPrevInstance;
+    (void)lpCmdLine;   
+    (void)nShowCmd;
+#else
+    (void)argc;
+    (void)argv;
+#endif
+
     // Initialize GLFW
     if (!glfwInit()) {
         std::cerr << "Failed to initialize GLFW\n";
