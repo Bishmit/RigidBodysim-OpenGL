@@ -32,7 +32,7 @@ endif()
 find_package(glm CONFIG QUIET)
 
 # ---------------- GLAD ----------------
-add_library(glad STATIC glad/glad.c)
+add_library(glad STATIC glad/glad.c "resource.h")
 target_include_directories(glad PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/glad
     ${CMAKE_CURRENT_SOURCE_DIR}/glad/KHR
@@ -47,7 +47,7 @@ add_library(imgui STATIC
     imgui/imgui_widgets.cpp
     imgui/backends/imgui_impl_glfw.cpp
     imgui/backends/imgui_impl_opengl3.cpp
-)
+ "resource.h")
 
 target_include_directories(imgui PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/imgui
@@ -71,15 +71,15 @@ file(GLOB_RECURSE LIB_FILES
 )
 
 # ---------------- Executable ----------------
-add_executable(main ${SRC_FILES} ${LIB_FILES})
+add_executable(RigidBodySimulation ${SRC_FILES} ${LIB_FILES})
 
-target_include_directories(main PRIVATE
+target_include_directories(RigidBodySimulation PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/glad
     ${CMAKE_CURRENT_SOURCE_DIR}/glad/KHR
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-target_link_libraries(main PRIVATE
+target_link_libraries(RigidBodySimulation PRIVATE
     glad
     imgui
     ${GLFW_TARGET}
@@ -89,7 +89,7 @@ target_link_libraries(main PRIVATE
 # ---------------- Platform-specific linking ----------------
 if(APPLE)
     # macOS frameworks
-    target_link_libraries(main PRIVATE
+    target_link_libraries(RigidBodySimulation PRIVATE
         "-framework Cocoa"
         "-framework IOKit"
         "-framework CoreVideo"
@@ -97,28 +97,27 @@ if(APPLE)
 elseif(UNIX AND NOT APPLE)
     # Linux
     find_package(Threads REQUIRED)
-    target_link_libraries(main PRIVATE
+    target_link_libraries(RigidBodySimulation PRIVATE
         Threads::Threads
         ${CMAKE_DL_LIBS}
     )
     # X11 libraries (required by GLFW on Linux)
     find_package(X11)
     if(X11_FOUND)
-        target_link_libraries(main PRIVATE ${X11_LIBRARIES})
+        target_link_libraries(RigidBodySimulation PRIVATE ${X11_LIBRARIES})
     endif()
 elseif(WIN32)
     # Windows - GLFW handles most dependencies automatically
     # Just ensure we're linking against the right subsystem
-    if(MSVC)
-        set_target_properties(main PROPERTIES
+    target_sources(RigidBodySimulation PRIVATE resource.rc)
+        set_target_properties(RigidBodySimulation PROPERTIES
             WIN32_EXECUTABLE FALSE  # Set to TRUE if you want a GUI app without console
         )
-    endif()
 endif()
 
 # ---------------- Compiler warnings ----------------
 if(MSVC)
-    target_compile_options(main PRIVATE /W4)
+    target_compile_options(RigidBodySimulation PRIVATE /W4)
 else()
-    target_compile_options(main PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(RigidBodySimulation PRIVATE -Wall -Wextra -Wpedantic)
 endif()

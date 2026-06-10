@@ -1,6 +1,6 @@
 # ================= CONFIG =================
 $vcpkgPath = "C:/Tools/vcpkg"     # Change if your vcpkg is elsewhere
-$generator = "Visual Studio 17 2022"
+$generator = "Visual Studio 18 2026"
 $arch = "x64"
 $buildType = "Release"
 $buildDir = "build"

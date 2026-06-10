@@ -7,7 +7,7 @@
 glm::mat4 Renderer::projection;
 glm::vec3 Renderer::color = glm::vec3(1.0f, 1.0f, 1.0f);
 
-GLuint Renderer::shaderProgram = 0;
+GLuint Renderer::shaderProgram = 0; 
 GLuint Renderer::circleVAO = 0, Renderer::circleVBO = 0;
 GLuint Renderer::rectVAO = 0, Renderer::rectVBO = 0;
 
