@@ -2,6 +2,10 @@
 
 ![Demo](Picture_SS/prototype2.png)
 
+### Improved GUI and functionalities 
+
+![Demo](Picture_SS/NewGUI.png)
+
 A 2D physics engine built using Modern OpenGL and Dear ImGui, supporting real-time rendering and interactive GUI controls.
 
 ---
