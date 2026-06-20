@@ -71,7 +71,7 @@ void Body::IntegrateLinear(float dt) {
 
 void Body::IntegrateAngular(float dt) {
     if(IsStatic()) return;
-    
+
     if(allowRotation){
     angularAcceleration = sumTorque * invI;
 

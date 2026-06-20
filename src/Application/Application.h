@@ -25,6 +25,7 @@
 
 #include "Renderer.h"
 #include "Utils.h"
+#include "GUI.h"
 
 #include "../../utils/json.hpp"
 
@@ -48,17 +49,14 @@ class Application {
     static void Shutdown();
     static void Destroy();
     
-    // User interaction
-    static void RenderGUI(GLFWwindow* window);
-    
     // Callback functions
     static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
     static void MouseButtonCallBack(GLFWwindow* window, int button, int action, int mods);
 
     static Body* getGreatBall(); 
     private:
-    static int RandomNumber(int start, int end); 
- 
+    static int RandomNumber(int start, int end);
+
     // Application state
     static int screenWidth, screenHeight;
     static float radius;
