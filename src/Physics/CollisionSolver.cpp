@@ -55,7 +55,7 @@ void CollisionSolver::ResolveCollision(ContactInformation &contact){
 
     // Calculate the collision impulse along the tangent direction (using friction coefficient f)
     Vec2 tangent = Vec2(normal.y, -normal.x);  // Tangent is perpendicular to the normal
-    float vrelDotTangent = vrel.Dot(tangent);  
+    float vrelDotTangent = vrel.Dot(tangent);
     const Vec2 impulseDirectionTangent = tangent;
     float impulseMagnitudeTangent = f * -vrelDotTangent / ((a->invMass + b->invMass) + ra.Cross(tangent) * ra.Cross(tangent) * a->invI + rb.Cross(tangent) * rb.Cross(tangent) * b->invI);
 

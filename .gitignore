@@ -1,6 +1,20 @@
-.vscode/
-glad/
+# Visual Studio
+.vs/
+*.VC.db
+*.opendb
+
+# Build folders
 build/
-/stb
-/imgui/
-.cache/
+out/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Binaries
+*.exe
+*.obj
+*.pdb
+
+#Imgui
+imgui/
