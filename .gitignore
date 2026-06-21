@@ -18,3 +18,5 @@ Makefile
 
 #Imgui
 imgui/
+
+.claude/

@@ -133,10 +133,17 @@ void Application::Update(GLFWwindow* window) {
         mouseX = mouseX * fbW / winW;
         mouseY = mouseY * fbH / winH;
 
-        draggedBody->position.x = mouseX - dragOffset.x;
-        draggedBody->position.y = mouseY - dragOffset.y;
-        draggedBody->velocity.x = 0;
-        draggedBody->velocity.y = 0;
+        Vec2 targetPos = {
+            (float)(mouseX - dragOffset.x),
+            (float)(mouseY - dragOffset.y)
+        };
+
+        // Derive velocity from mouse movement so collision impulses transfer correctly
+        if (deltaTime > 0.0f) {
+            draggedBody->velocity.x = (targetPos.x - draggedBody->position.x) / deltaTime;
+            draggedBody->velocity.y = (targetPos.y - draggedBody->position.y) / deltaTime;
+        }
+        draggedBody->position = targetPos;
     }
         // Detect collisions
     // Update vertices before collision checks
@@ -544,9 +551,6 @@ int Application::RandomNumber(int start, int end){
 }
 
 void Application::ClearOffScreenBodies(GLFWwindow* window) {
-    // Use framebuffer dimensions (not logical monitor coords) with a generous margin
-    // so bodies are only removed once truly off screen, not while still visible
-    const float margin = 400.f;
     auto it = std::remove_if(bodies.begin(), bodies.end(),
         [](Body* body) {
             if (!body->IsStatic() && (
@@ -554,6 +558,9 @@ void Application::ClearOffScreenBodies(GLFWwindow* window) {
                 body->position.x > screenWidth  + 400.f ||
                 body->position.y < -400.f ||
                 body->position.y > screenHeight + 400.f)) {
+                if (body == draggedBody)       { draggedBody = nullptr; isDragging = false; }
+                if (body == recentSelectedBody){ recentSelectedBody = nullptr; isRecentBodySelected = false; }
+                if (body == greatBall)          { greatBall = nullptr; }
                 delete body;
                 return true;
             }
@@ -569,11 +576,14 @@ bool Application::ClearDynamicObjectOnScreen() {
         if (!body) return false;
 
         if (!body->IsStatic()) {
+            if (body == draggedBody)       { draggedBody = nullptr; isDragging = false; }
+            if (body == recentSelectedBody){ recentSelectedBody = nullptr; isRecentBodySelected = false; }
+            if (body == greatBall)          { greatBall = nullptr; }
             delete body;
-            return true;  // Remove from vector
+            return true;
         }
 
-        return false; // Keep static body 
+        return false;
     });
 
     bodies.erase(it, bodies.end());
@@ -585,13 +595,16 @@ bool Application::DeleteParticularBody(Body* body) {
         return false;
 
     auto it = std::find(bodies.begin(), bodies.end(), body);
-    if (it != bodies.end() - 1) {
-        delete *it;              
-        bodies.erase(it);        
+    if (it != bodies.end()) {
+        if (body == draggedBody)  { draggedBody = nullptr; isDragging = false; }
+        if (body == greatBall)     { greatBall = nullptr; }
+        delete *it;
+        bodies.erase(it);
         recentSelectedBody = nullptr;
+        isRecentBodySelected = false;
         return true;
     }
-    return false; 
+    return false;
 }
 
 
